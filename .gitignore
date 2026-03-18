@@ -1,0 +1,6 @@
+ui/.env
+worker/.dev.vars
+worker/.wrangler/
+ui/dist/
+ui/node_modules/
+worker/node_modules/

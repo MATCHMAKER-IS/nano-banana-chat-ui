@@ -1,0 +1,31 @@
+
+> nano-banana-worker@0.1.0 dev
+> wrangler dev
+
+
+ ⛅️ wrangler 4.70.0 (update available 4.75.0)
+─────────────────────────────────────────────
+Using secrets defined in .dev.vars
+Your Worker has access to the following bindings:
+Binding                                                                 Resource                  Mode
+env.CORS_ALLOW_ORIGIN ("*")                                             Environment Variable      local
+env.ALLOWED_ORIGINS ("http://localhost:5173,http://127.0.0....")        Environment Variable      local
+env.GEMINI_API_KEY ("(hidden)")                                         Environment Variable      local
+env.PROXY_TOKEN ("(hidden)")                                            Environment Variable      local
+
+⎔ Starting local server...
+[wrangler:warn] The latest compatibility date supported by the installed Cloudflare Workers Runtime is "2026-03-01",
+but you've requested "2026-03-05". Falling back to "2026-03-01"...
+Features enabled by your requested compatibility date may not be available.
+Upgrade to `wrangler@4.75.0` to remove this warning.
+[wrangler:info] Ready on http://127.0.0.1:8787
+⎔ Reloading local server...
+⎔ Local server updated and ready
+⎔ Reloading local server...
+⎔ Local server updated and ready
+⎔ Reloading local server...
+⎔ Local server updated and ready
+⎔ Reloading local server...
+⎔ Local server updated and ready
+⎔ Reloading local server...
+⎔ Local server updated and ready

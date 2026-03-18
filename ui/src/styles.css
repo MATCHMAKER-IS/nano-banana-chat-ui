@@ -1,0 +1,73 @@
+﻿:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #212121;
+  font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 12px;
+  position: relative;
+  overflow: visible;
+}
+
+.chat-panel {
+  min-height: calc(100vh - 24px);
+}
+
+.side-panel {
+  min-height: calc(100vh - 24px);
+}
+
+.compare-viewport {
+  width: 100%;
+  overflow: auto;
+  border-radius: 10px;
+  border: none;
+  background: rgba(36, 36, 36, 0.9);
+  padding: 8px;
+  cursor: grab;
+}
+
+.compare-viewport.dragging {
+  cursor: grabbing;
+}
+
+.thinking-text {
+  animation: thinking-fade 1.6s infinite ease-in-out;
+}
+
+@keyframes thinking-fade {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1200px) {
+  .chat-panel {
+    min-height: 74vh;
+  }
+
+  .side-panel {
+    min-height: auto;
+  }
+}
