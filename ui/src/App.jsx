@@ -640,7 +640,7 @@ export default function App() {
                           <Button
                             size="small"
                             variant="text"
-                            onClick={() => setCompareSlotBefore(m.image)}
+                            onClick={() => setCompareSlotBefore(compareSlotBefore === m.image ? null : m.image)}
                             sx={{
                               color: compareSlotBefore === m.image ? "#fff" : "text.primary",
                               background: compareSlotBefore === m.image ? "rgba(99,179,237,0.25)" : "transparent",
@@ -653,7 +653,7 @@ export default function App() {
                           <Button
                             size="small"
                             variant="text"
-                            onClick={() => setCompareSlotAfter(m.image)}
+                            onClick={() => setCompareSlotAfter(compareSlotAfter === m.image ? null : m.image)}
                             sx={{
                               color: compareSlotAfter === m.image ? "#fff" : "text.primary",
                               background: compareSlotAfter === m.image ? "rgba(154,230,180,0.25)" : "transparent",
