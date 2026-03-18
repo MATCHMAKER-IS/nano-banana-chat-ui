@@ -324,7 +324,7 @@ export default {
         status: first.upstreamRes.status,
         contentType: upstream.contentType,
         details: upstream.json ? sanitizeForClient(upstream.json) : sanitizeForClient(upstream.rawText),
-        hint: isTimeout ? "画像サイズや指示を軽くして再送してください。" : undefined
+        hint: isTimeout ? "画像サイズや指示を軽くして再送してください。" : "モデルが応答できませんでした。選択中のモデルが不安定な可能性があります。別のモデルに切り替えてお試しください。"
       });
     }
 
@@ -374,7 +374,7 @@ export default {
         sessionId,
         text,
         finishReasons,
-        hint: "安全判定やモデル都合で画像が返らない場合があります。指示を短くし、人物保持・編集意図を明確にして再試行してください。"
+        hint: "画像が生成されませんでした。選択中のモデルが不安定な可能性があります。別のモデルに切り替えるか、指示を変えて再試行してください。"
       });
     }
 

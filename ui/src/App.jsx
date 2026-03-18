@@ -21,12 +21,9 @@ import {
 import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
-import ImageSearchRoundedIcon from "@mui/icons-material/ImageSearchRounded";
 
 const PSEUDO_STEPS = ["画像を読み込み中", "編集内容を解析中", "編集リクエストを送信中", "画像を生成中", "最終調整中"];
 const PROXY_TOKEN_STORAGE_KEY = "nano_banana_proxy_token";
@@ -227,21 +224,16 @@ export default function App() {
   const [error, setError] = useState("");
   const [modalImage, setModalImage] = useState("");
   const [compareModal, setCompareModal] = useState(null);
-  const [compareSlotBefore, setCompareSlotBefore] = useState(null);
-  const [compareSlotAfter, setCompareSlotAfter] = useState(null);
-  const [compareZoom, setCompareZoom] = useState(1);
-  const compareZoomRef = useRef(compareZoom);
-  useEffect(() => { compareZoomRef.current = compareZoom; }, [compareZoom]);
-  const [compareRatios, setCompareRatios] = useState({ before: 1, after: 1 });
-  const [compareViewportHeights, setCompareViewportHeights] = useState({ before: 420, after: 420 });
+  const [sliderPos, setSliderPos] = useState(50);
+  const [compareAspect, setCompareAspect] = useState("16/9");
   const [targetNoticeOpen, setTargetNoticeOpen] = useState(false);
 
   const formRef = useRef(null);
   const endRef = useRef(null);
-  const beforeViewportRef = useRef(null);
-  const afterViewportRef = useRef(null);
-  const compareDragRef = useRef({ active: false, pane: null, pointerId: null, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
-  const [draggingPane, setDraggingPane] = useState(null);
+  const sliderContainerRef = useRef(null);
+  const sliderDraggingRef = useRef(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
   useEffect(() => {
     try {
@@ -268,69 +260,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [loading]);
 
-  useEffect(() => {
-    let active = true;
-    if (!compareModal) return undefined;
-
-    (async () => {
-      try {
-        const [beforeImg, afterImg] = await Promise.all([loadImage(compareModal.before), loadImage(compareModal.after)]);
-        if (!active) return;
-        const beforeRatio = (beforeImg.naturalWidth || beforeImg.width) / (beforeImg.naturalHeight || beforeImg.height);
-        const afterRatio = (afterImg.naturalWidth || afterImg.width) / (afterImg.naturalHeight || afterImg.height);
-        setCompareRatios({ before: beforeRatio || 1, after: afterRatio || 1 });
-      } catch {
-        if (active) setCompareRatios({ before: 1, after: 1 });
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [compareModal]);
-
-  useEffect(() => {
-    if (!compareModal) return undefined;
-    const id = requestAnimationFrame(() => {
-      [beforeViewportRef.current, afterViewportRef.current].forEach((viewport) => {
-        if (!viewport) return;
-        viewport.scrollLeft = Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2);
-        viewport.scrollTop = Math.max(0, (viewport.scrollHeight - viewport.clientHeight) / 2);
-      });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [compareModal, compareRatios]);
-
-  useEffect(() => {
-    if (!compareModal) return undefined;
-
-    const computeHeight = (width, ratio) => {
-      const safeRatio = Math.max(0.1, ratio || 1);
-      const innerWidth = Math.max(160, width - 16);
-      return Math.max(120, Math.round(innerWidth / safeRatio));
-    };
-
-    const updateHeights = () => {
-      const beforeWidth = beforeViewportRef.current?.clientWidth || 0;
-      const afterWidth = afterViewportRef.current?.clientWidth || 0;
-      if (!beforeWidth && !afterWidth) return;
-      setCompareViewportHeights({
-        before: computeHeight(beforeWidth, compareRatios.before),
-        after: computeHeight(afterWidth, compareRatios.after)
-      });
-    };
-
-    updateHeights();
-    const observer = new ResizeObserver(updateHeights);
-    if (beforeViewportRef.current) observer.observe(beforeViewportRef.current);
-    if (afterViewportRef.current) observer.observe(afterViewportRef.current);
-    window.addEventListener("resize", updateHeights);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateHeights);
-    };
-  }, [compareModal, compareRatios]);
 
   const effectiveImage = useMemo(
     () => pendingAttachment?.dataUrl || manualTargetImage || latestGeneratedImage || "",
@@ -356,19 +285,22 @@ export default function App() {
     return Math.min(95, 10 + elapsedMs / 200);
   }, [loading, elapsedMs]);
 
-  const onAttach = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const attachFile = async (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
     const previewUrl = URL.createObjectURL(file);
     const rawDataUrl = await fileToDataUrl(file);
     const dataUrl = await shrinkDataUrlIfNeeded(rawDataUrl);
-
     setPendingAttachment((prev) => {
       if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
       return { fileName: file.name, previewUrl, dataUrl };
     });
     setError("");
+  };
+
+  const onAttach = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await attachFile(file);
     event.target.value = "";
   };
 
@@ -393,92 +325,28 @@ export default function App() {
   };
 
   const openCompare = (before, after) => {
-    setCompareZoom(1);
-    setCompareRatios({ before: 1, after: 1 });
+    setSliderPos(50);
+    setCompareAspect("4/3");
     setCompareModal({ before, after });
   };
 
-  const getCompareViewport = (pane) => (pane === "before" ? beforeViewportRef.current : afterViewportRef.current);
-
-  const onComparePointerDown = (pane, event) => {
-    if (event.button !== 0) return;
-    const viewport = getCompareViewport(pane);
-    if (!viewport) return;
-
-    viewport.setPointerCapture(event.pointerId);
-    compareDragRef.current = {
-      active: true,
-      pane,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      scrollLeft: viewport.scrollLeft,
-      scrollTop: viewport.scrollTop
-    };
-    setDraggingPane(pane);
-    event.preventDefault();
+  const onSliderPointerDown = (e) => {
+    e.preventDefault();
+    sliderDraggingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const onComparePointerMove = (pane, event) => {
-    const drag = compareDragRef.current;
-    if (!drag.active || drag.pane !== pane || drag.pointerId !== event.pointerId) return;
-    const viewport = getCompareViewport(pane);
-    if (!viewport) return;
-
-    const dx = event.clientX - drag.startX;
-    const dy = event.clientY - drag.startY;
-    viewport.scrollLeft = drag.scrollLeft - dx;
-    viewport.scrollTop = drag.scrollTop - dy;
+  const onSliderContainerMove = (e) => {
+    if (!sliderDraggingRef.current) return;
+    const rect = sliderContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const pos = Math.min(99, Math.max(1, ((e.clientX - rect.left) / rect.width) * 100));
+    setSliderPos(pos);
   };
 
-  const onComparePointerUp = (pane, event) => {
-    const drag = compareDragRef.current;
-    if (!drag.active || drag.pane !== pane || drag.pointerId !== event.pointerId) return;
-    const viewport = getCompareViewport(pane);
-    if (viewport?.hasPointerCapture(event.pointerId)) {
-      viewport.releasePointerCapture(event.pointerId);
-    }
-    compareDragRef.current = { active: false, pane: null, pointerId: null, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 };
-    setDraggingPane(null);
+  const onSliderContainerUp = () => {
+    sliderDraggingRef.current = false;
   };
-
-  useEffect(() => {
-    if (!compareModal) return undefined;
-    const beforeViewport = beforeViewportRef.current;
-    const afterViewport = afterViewportRef.current;
-
-    const createHandler = (viewport) => (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const currentZoom = compareZoomRef.current;
-      const delta = event.deltaY > 0 ? -0.15 : 0.15;
-      const newZoom = clamp(currentZoom + delta, 0.25, 8);
-
-      const rect = viewport.getBoundingClientRect();
-      const cursorX = event.clientX - rect.left;
-      const cursorY = event.clientY - rect.top;
-      const newScrollLeft = (viewport.scrollLeft + cursorX) * newZoom / currentZoom - cursorX;
-      const newScrollTop = (viewport.scrollTop + cursorY) * newZoom / currentZoom - cursorY;
-
-      setCompareZoom(newZoom);
-      requestAnimationFrame(() => {
-        viewport.scrollLeft = newScrollLeft;
-        viewport.scrollTop = newScrollTop;
-      });
-    };
-
-    const beforeHandler = createHandler(beforeViewport);
-    const afterHandler = createHandler(afterViewport);
-
-    beforeViewport?.addEventListener("wheel", beforeHandler, { passive: false });
-    afterViewport?.addEventListener("wheel", afterHandler, { passive: false });
-
-    return () => {
-      beforeViewport?.removeEventListener("wheel", beforeHandler);
-      afterViewport?.removeEventListener("wheel", afterHandler);
-    };
-  }, [compareModal]);
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -565,6 +433,28 @@ export default function App() {
     }
   };
 
+  const onDragEnter = (e) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setIsDragOver(true);
+  };
+
+  const onDragLeave = (e) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setIsDragOver(false);
+  };
+
+  const onDragOver = (e) => { e.preventDefault(); };
+
+  const onDrop = async (e) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) await attachFile(file);
+  };
+
   const resetSession = () => {
     clearAttachment();
     setSessionId(crypto.randomUUID());
@@ -573,8 +463,6 @@ export default function App() {
     setLatestGeneratedImage("");
     setManualTargetImage("");
     setError("");
-    setCompareSlotBefore(null);
-    setCompareSlotAfter(null);
   };
 
   return (
@@ -583,15 +471,39 @@ export default function App() {
         <Paper
           elevation={0}
           className="chat-panel"
+          onDragEnter={onDragEnter}
+          onDragLeave={onDragLeave}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
           sx={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             minHeight: 0,
             background: "transparent",
-            borderRadius: 0
+            borderRadius: 0,
+            position: "relative"
           }}
         >
+          {isDragOver && (
+            <Box sx={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 200,
+              background: "rgba(255,255,255,0.04)",
+              border: "2px dashed rgba(255,255,255,0.3)",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+              backdropFilter: "blur(2px)"
+            }}>
+              <Typography sx={{ color: "text.primary", fontSize: "1.1rem", fontWeight: 600, opacity: 0.85 }}>
+                画像をドロップして追加
+              </Typography>
+            </Box>
+          )}
           <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
             <Typography variant="h4" sx={{ fontSize: { xs: 18, md: 20 }, fontWeight: 600, letterSpacing: "-0.01em", color: "text.primary" }}>
               Nano Banana
@@ -616,8 +528,8 @@ export default function App() {
                       maxWidth: m.role === "assistant" ? "min(760px, 100%)" : "min(680px, 82%)",
                       p: m.role === "assistant" ? "10px 4px" : "10px 16px",
                       borderRadius: m.role === "assistant" ? 0 : "18px",
-                      border: m.error ? "1px solid" : "none",
-                      borderColor: m.error ? "error.main" : "transparent",
+                      border: "none",
+                      borderColor: "transparent",
                       background: m.role === "assistant" ? "transparent" : "#2f2f2f"
                     }}
                   >
@@ -637,32 +549,16 @@ export default function App() {
                           <Button size="small" variant="text" onClick={() => setAsCurrentTarget(m.image)}>
                             {!pendingAttachment && manualTargetImage === m.image ? "編集中" : "編集対象にする"}
                           </Button>
-                          <Button
-                            size="small"
-                            variant="text"
-                            onClick={() => setCompareSlotBefore(compareSlotBefore === m.image ? null : m.image)}
-                            sx={{
-                              color: compareSlotBefore === m.image ? "#fff" : "text.primary",
-                              background: compareSlotBefore === m.image ? "rgba(99,179,237,0.25)" : "transparent",
-                              borderRadius: "8px",
-                              fontWeight: compareSlotBefore === m.image ? 700 : 400
-                            }}
-                          >
-                            Before {compareSlotBefore === m.image ? "✓" : ""}
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="text"
-                            onClick={() => setCompareSlotAfter(compareSlotAfter === m.image ? null : m.image)}
-                            sx={{
-                              color: compareSlotAfter === m.image ? "#fff" : "text.primary",
-                              background: compareSlotAfter === m.image ? "rgba(154,230,180,0.25)" : "transparent",
-                              borderRadius: "8px",
-                              fontWeight: compareSlotAfter === m.image ? 700 : 400
-                            }}
-                          >
-                            After {compareSlotAfter === m.image ? "✓" : ""}
-                          </Button>
+                          {m.role === "assistant" && !m.pending && m.beforeImage && m.image ? (
+                            <Button
+                              size="small"
+                              variant="text"
+                              startIcon={<CompareArrowsRoundedIcon />}
+                              onClick={() => openCompare(m.beforeImage, m.image)}
+                            >
+                              比較
+                            </Button>
+                          ) : null}
                           <Button
                             size="small"
                             variant="text"
@@ -905,17 +801,6 @@ export default function App() {
                 "& .MuiInputLabel-root": { color: "text.primary" }
               }}
             />
-            {compareSlotBefore && compareSlotAfter ? (
-              <Button
-                variant="text"
-                size="small"
-                startIcon={<CompareArrowsRoundedIcon />}
-                onClick={() => openCompare(compareSlotBefore, compareSlotAfter)}
-                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", fontWeight: 600, "&:hover": { background: "rgba(255,255,255,0.05)" } }}
-              >
-                比較する
-              </Button>
-            ) : null}
             <Button
               variant="text"
               size="small"
@@ -941,118 +826,96 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(compareModal)} onClose={() => setCompareModal(null)} fullWidth maxWidth="xl">
-        <DialogTitle sx={{ pr: 6 }}>
+      <Dialog open={Boolean(compareModal)} onClose={() => setCompareModal(null)} fullWidth maxWidth="xl"
+        PaperProps={{ sx: { background: "#1a1a1a", borderRadius: "12px" } }}>
+        <DialogTitle sx={{ color: "text.primary", pr: 6, fontSize: "0.95rem", fontWeight: 600 }}>
           Before / After
-          <IconButton onClick={() => setCompareModal(null)} sx={{ position: "absolute", right: 8, top: 8 }}>
+          <IconButton onClick={() => setCompareModal(null)} sx={{ position: "absolute", right: 8, top: 8, color: "text.primary" }}>
             <CloseRoundedIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent>
-          <Stack direction="row" spacing={1} sx={{ mb: 1.2, alignItems: "center", flexWrap: "wrap" }}>
-            <Chip label={`${Math.round(compareZoom * 100)}%`} size="small" />
-            <Button size="small" variant="text" startIcon={<RemoveRoundedIcon />} onClick={() => setCompareZoom((z) => clamp(z - 0.25, 1, 4))}>
-              縮小
-            </Button>
-            <Button size="small" variant="text" startIcon={<AddRoundedIcon />} onClick={() => setCompareZoom((z) => clamp(z + 0.25, 1, 4))}>
-              拡大
-            </Button>
-            <Button size="small" variant="text" onClick={() => setCompareZoom(1)}>
-              リセット
-            </Button>
-          </Stack>
-
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.6, display: "flex", alignItems: "center", gap: 0.5 }}>
-                <ImageSearchRoundedIcon fontSize="small" /> 編集前
-              </Typography>
+        <DialogContent sx={{ pb: 3 }}>
+          {compareModal ? (
+            <Box
+              ref={sliderContainerRef}
+              sx={{
+                position: "relative",
+                width: "100%",
+                maxHeight: "85vh",
+                aspectRatio: compareAspect,
+                overflow: "hidden",
+                userSelect: "none",
+                background: "#000",
+                borderRadius: "8px",
+                touchAction: "none",
+              }}
+              onPointerMove={onSliderContainerMove}
+              onPointerUp={onSliderContainerUp}
+              onPointerLeave={onSliderContainerUp}
+            >
+              {/* After image */}
               <Box
-                ref={beforeViewportRef}
-                className={`compare-viewport ${draggingPane === "before" ? "dragging" : ""}`}
-                onPointerDown={(event) => onComparePointerDown("before", event)}
-                onPointerMove={(event) => onComparePointerMove("before", event)}
-                onPointerUp={(event) => onComparePointerUp("before", event)}
-                onPointerCancel={(event) => onComparePointerUp("before", event)}
-                sx={{ touchAction: "none", overscrollBehavior: "contain", height: compareViewportHeights.before }}
+                component="img"
+                src={compareModal.after}
+                alt="after"
+                draggable={false}
+                onLoad={(e) => {
+                  const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                  if (w && h) setCompareAspect(`${w}/${h}`);
+                }}
+                sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+              />
+              {/* Before image with clip */}
+              <Box
+                component="img"
+                src={compareModal.before}
+                alt="before"
+                draggable={false}
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  clipPath: `inset(0 ${(100 - sliderPos).toFixed(2)}% 0 0)`,
+                  display: "block"
+                }}
+              />
+              {/* Before label */}
+              <Box sx={{ position: "absolute", top: 12, left: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
+                Before
+              </Box>
+              {/* After label */}
+              <Box sx={{ position: "absolute", top: 12, right: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
+                After
+              </Box>
+              {/* Divider line */}
+              <Box sx={{ position: "absolute", top: 0, bottom: 0, left: `${sliderPos}%`, width: "2px", background: "#fff", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 10, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
+              {/* Drag handle */}
+              <Box
+                onPointerDown={onSliderPointerDown}
+                sx={{
+                  position: "absolute",
+                  top: "50%",
+                  left: `${sliderPos}%`,
+                  transform: "translate(-50%, -50%)",
+                  width: 40,
+                  height: 40,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "ew-resize",
+                  zIndex: 11,
+                  boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+                  "&:hover": { transform: "translate(-50%, -50%) scale(1.12)", transition: "transform 0.1s" }
+                }}
               >
-                {compareModal ? (
-                  <Box
-                    component="img"
-                    src={compareModal.before}
-                    alt="before"
-                    draggable={false}
-                    sx={
-                      compareRatios.before < 1
-                        ? {
-                            height: `${Math.round(compareZoom * 100)}%`,
-                            width: "auto",
-                            maxWidth: "none",
-                            maxHeight: "none",
-                            borderRadius: 0,
-                            userSelect: "none",
-                            display: "block"
-                          }
-                        : {
-                            width: `${Math.round(compareZoom * 100)}%`,
-                            height: "auto",
-                            maxWidth: "none",
-                            maxHeight: "none",
-                            borderRadius: 0,
-                            userSelect: "none",
-                            display: "block"
-                          }
-                    }
-                  />
-                ) : null}
+                <CompareArrowsRoundedIcon sx={{ color: "#111", fontSize: 18 }} />
               </Box>
             </Box>
-
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.6, display: "flex", alignItems: "center", gap: 0.5 }}>
-                <SendRoundedIcon fontSize="small" /> 編集後
-              </Typography>
-              <Box
-                ref={afterViewportRef}
-                className={`compare-viewport ${draggingPane === "after" ? "dragging" : ""}`}
-                onPointerDown={(event) => onComparePointerDown("after", event)}
-                onPointerMove={(event) => onComparePointerMove("after", event)}
-                onPointerUp={(event) => onComparePointerUp("after", event)}
-                onPointerCancel={(event) => onComparePointerUp("after", event)}
-                sx={{ touchAction: "none", overscrollBehavior: "contain", height: compareViewportHeights.after }}
-              >
-                {compareModal ? (
-                  <Box
-                    component="img"
-                    src={compareModal.after}
-                    alt="after"
-                    draggable={false}
-                    sx={
-                      compareRatios.after < 1
-                        ? {
-                            height: `${Math.round(compareZoom * 100)}%`,
-                            width: "auto",
-                            maxWidth: "none",
-                            maxHeight: "none",
-                            borderRadius: 0,
-                            userSelect: "none",
-                            display: "block"
-                          }
-                        : {
-                            width: `${Math.round(compareZoom * 100)}%`,
-                            height: "auto",
-                            maxWidth: "none",
-                            maxHeight: "none",
-                            borderRadius: 0,
-                            userSelect: "none",
-                            display: "block"
-                          }
-                    }
-                  />
-                ) : null}
-              </Box>
-            </Box>
-          </Stack>
+          ) : null}
         </DialogContent>
       </Dialog>
 
