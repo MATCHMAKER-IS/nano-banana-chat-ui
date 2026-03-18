@@ -8,26 +8,26 @@ const theme = createTheme({
   palette: {
     mode: "dark",
     primary: {
-      main: "#f1f1f1",
+      main: "#ffffff",
       dark: "#d9d9d9",
       light: "#ffffff",
       contrastText: "#111111"
     },
     background: {
       default: "#212121",
-      paper: "rgba(43, 43, 43, 0.9)"
+      paper: "#2f2f2f"
     },
     text: {
       primary: "#ececec",
-      secondary: "#a7a7a7"
+      secondary: "#8e8ea0"
     },
-    divider: "rgba(255, 255, 255, 0.12)"
+    divider: "rgba(255, 255, 255, 0.08)"
   },
   shape: {
-    borderRadius: 14
+    borderRadius: 12
   },
   typography: {
-    fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif'
+    fontFamily: '"DM Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif'
   },
   components: {
     MuiPaper: {

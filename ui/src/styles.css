@@ -10,10 +10,16 @@ body {
   margin: 0;
   min-height: 100vh;
   background: #212121;
-  font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  font-family: "DM Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* スクロールバー */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
 
 #root {
   min-height: 100vh;
@@ -21,7 +27,7 @@ body {
 
 .app-shell {
   min-height: 100vh;
-  padding: 12px;
+  padding: 0;
   position: relative;
   overflow: visible;
 }

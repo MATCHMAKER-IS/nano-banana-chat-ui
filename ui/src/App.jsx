@@ -227,7 +227,11 @@ export default function App() {
   const [error, setError] = useState("");
   const [modalImage, setModalImage] = useState("");
   const [compareModal, setCompareModal] = useState(null);
+  const [compareSlotBefore, setCompareSlotBefore] = useState(null);
+  const [compareSlotAfter, setCompareSlotAfter] = useState(null);
   const [compareZoom, setCompareZoom] = useState(1);
+  const compareZoomRef = useRef(compareZoom);
+  useEffect(() => { compareZoomRef.current = compareZoom; }, [compareZoom]);
   const [compareRatios, setCompareRatios] = useState({ before: 1, after: 1 });
   const [compareViewportHeights, setCompareViewportHeights] = useState({ before: 420, after: 420 });
   const [targetNoticeOpen, setTargetNoticeOpen] = useState(false);
@@ -303,8 +307,7 @@ export default function App() {
     const computeHeight = (width, ratio) => {
       const safeRatio = Math.max(0.1, ratio || 1);
       const innerWidth = Math.max(160, width - 16);
-      const ideal = innerWidth / safeRatio;
-      return clamp(Math.round(ideal), 260, 640);
+      return Math.max(120, Math.round(innerWidth / safeRatio));
     };
 
     const updateHeights = () => {
@@ -443,17 +446,37 @@ export default function App() {
     if (!compareModal) return undefined;
     const beforeViewport = beforeViewportRef.current;
     const afterViewport = afterViewportRef.current;
-    const handler = (event) => {
+
+    const createHandler = (viewport) => (event) => {
       event.preventDefault();
       event.stopPropagation();
+
+      const currentZoom = compareZoomRef.current;
+      const delta = event.deltaY > 0 ? -0.15 : 0.15;
+      const newZoom = clamp(currentZoom + delta, 0.25, 8);
+
+      const rect = viewport.getBoundingClientRect();
+      const cursorX = event.clientX - rect.left;
+      const cursorY = event.clientY - rect.top;
+      const newScrollLeft = (viewport.scrollLeft + cursorX) * newZoom / currentZoom - cursorX;
+      const newScrollTop = (viewport.scrollTop + cursorY) * newZoom / currentZoom - cursorY;
+
+      setCompareZoom(newZoom);
+      requestAnimationFrame(() => {
+        viewport.scrollLeft = newScrollLeft;
+        viewport.scrollTop = newScrollTop;
+      });
     };
 
-    beforeViewport?.addEventListener("wheel", handler, { passive: false });
-    afterViewport?.addEventListener("wheel", handler, { passive: false });
+    const beforeHandler = createHandler(beforeViewport);
+    const afterHandler = createHandler(afterViewport);
+
+    beforeViewport?.addEventListener("wheel", beforeHandler, { passive: false });
+    afterViewport?.addEventListener("wheel", afterHandler, { passive: false });
 
     return () => {
-      beforeViewport?.removeEventListener("wheel", handler);
-      afterViewport?.removeEventListener("wheel", handler);
+      beforeViewport?.removeEventListener("wheel", beforeHandler);
+      afterViewport?.removeEventListener("wheel", afterHandler);
     };
   }, [compareModal]);
 
@@ -550,11 +573,13 @@ export default function App() {
     setLatestGeneratedImage("");
     setManualTargetImage("");
     setError("");
+    setCompareSlotBefore(null);
+    setCompareSlotAfter(null);
   };
 
   return (
     <Box className="app-shell">
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={1.5} sx={{ height: "100%", position: "relative", zIndex: 1 }}>
+      <Stack direction={{ xs: "column", lg: "row" }} spacing={0} sx={{ height: "100%", position: "relative", zIndex: 1 }}>
         <Paper
           elevation={0}
           className="chat-panel"
@@ -562,14 +587,15 @@ export default function App() {
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            minHeight: 0
+            minHeight: 0,
+            background: "transparent",
+            borderRadius: 0
           }}
         >
-          <Box sx={{ px: 2.5, pt: 2.25, pb: 1.5 }}>
-            <Typography variant="h4" sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 700, letterSpacing: "0.01em" }}>
-              Nano Banana Chat UI
+          <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
+            <Typography variant="h4" sx={{ fontSize: { xs: 18, md: 20 }, fontWeight: 600, letterSpacing: "-0.01em", color: "text.primary" }}>
+              Nano Banana
             </Typography>
-            {/* 意図的に簡素化: 説明テキストは表示しない */}
           </Box>
 
           {null}
@@ -586,22 +612,21 @@ export default function App() {
                   <Paper
                     elevation={0}
                     sx={{
-                      width: "fit-content",
-                      maxWidth: "min(860px, 88%)",
-                      p: 1.25,
-                      borderRadius: 2,
+                      width: m.role === "assistant" ? "100%" : "fit-content",
+                      maxWidth: m.role === "assistant" ? "min(760px, 100%)" : "min(680px, 82%)",
+                      p: m.role === "assistant" ? "10px 4px" : "10px 16px",
+                      borderRadius: m.role === "assistant" ? 0 : "18px",
                       border: m.error ? "1px solid" : "none",
                       borderColor: m.error ? "error.main" : "transparent",
-                      background:
-                        m.role === "assistant"
-                          ? "transparent"
-                          : "rgba(57,57,57,0.96)"
+                      background: m.role === "assistant" ? "transparent" : "#2f2f2f"
                     }}
                   >
-                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                      {m.role === "assistant" ? "AI" : "YOU"}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: "pre-wrap", lineHeight: 1.65 }}>
+                    {m.role === "assistant" && (
+                      <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", mb: 0.75 }}>
+                        AI
+                      </Typography>
+                    )}
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "0.9375rem" }}>
                       {m.text}
                     </Typography>
 
@@ -612,16 +637,32 @@ export default function App() {
                           <Button size="small" variant="text" onClick={() => setAsCurrentTarget(m.image)}>
                             {!pendingAttachment && manualTargetImage === m.image ? "編集中" : "編集対象にする"}
                           </Button>
-                          {m.role === "assistant" && m.beforeImage ? (
-                            <Button
-                              size="small"
-                              variant="text"
-                              startIcon={<CompareArrowsRoundedIcon />}
-                              onClick={() => openCompare(m.beforeImage, m.image)}
-                            >
-                              比較表示
-                            </Button>
-                          ) : null}
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => setCompareSlotBefore(m.image)}
+                            sx={{
+                              color: compareSlotBefore === m.image ? "#fff" : "text.primary",
+                              background: compareSlotBefore === m.image ? "rgba(99,179,237,0.25)" : "transparent",
+                              borderRadius: "8px",
+                              fontWeight: compareSlotBefore === m.image ? 700 : 400
+                            }}
+                          >
+                            Before {compareSlotBefore === m.image ? "✓" : ""}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => setCompareSlotAfter(m.image)}
+                            sx={{
+                              color: compareSlotAfter === m.image ? "#fff" : "text.primary",
+                              background: compareSlotAfter === m.image ? "rgba(154,230,180,0.25)" : "transparent",
+                              borderRadius: "8px",
+                              fontWeight: compareSlotAfter === m.image ? 700 : 400
+                            }}
+                          >
+                            After {compareSlotAfter === m.image ? "✓" : ""}
+                          </Button>
                           <Button
                             size="small"
                             variant="text"
@@ -635,13 +676,13 @@ export default function App() {
                     ) : null}
 
                     {m.attachmentName ? (
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                      <Typography variant="caption" sx={{ mt: 1, display: "block", color: "text.primary" }}>
                         添付: {m.attachmentName}
                       </Typography>
                     ) : null}
 
                     {m.pending ? (
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "inline-flex", alignItems: "center" }}>
+                      <Typography variant="caption" sx={{ mt: 1, display: "inline-flex", alignItems: "center", color: "text.primary" }}>
                         <Box component="span" className="thinking-text">
                           生成中
                         </Box>
@@ -659,14 +700,14 @@ export default function App() {
           <Box sx={{ mt: "auto" }}>
             {null}
 
-            <Box component="form" ref={formRef} onSubmit={onSubmit} sx={{ p: 1.25 }}>
+            <Box component="form" ref={formRef} onSubmit={onSubmit} sx={{ px: 2, pb: 2, pt: 1 }}>
               <Paper
                 elevation={0}
                 sx={{
-                  p: 0.9,
-                  borderRadius: 3,
+                  p: 1,
+                  borderRadius: "16px",
                   border: "none",
-                  backgroundColor: "rgba(38, 38, 38, 0.88)"
+                  backgroundColor: "#2f2f2f"
                 }}
               >
                 {pendingAttachment ? (
@@ -685,10 +726,10 @@ export default function App() {
                   >
                     <Box component="img" src={pendingAttachment.previewUrl} alt="pending" sx={{ width: 88, height: 56, objectFit: "cover", borderRadius: 1.25 }} />
                     <Stack spacing={0.5}>
-                      <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260 }} noWrap>
+                      <Typography variant="caption" sx={{ maxWidth: 260, color: "text.primary" }} noWrap>
                         {pendingAttachment.fileName}
                       </Typography>
-                      <Button size="small" variant="text" color="inherit" onClick={clearAttachment} sx={{ alignSelf: "flex-start", minWidth: 0, px: 0.5 }}>
+                      <Button size="small" variant="text" onClick={clearAttachment} sx={{ alignSelf: "flex-start", minWidth: 0, px: 0.5, color: "text.primary" }}>
                         削除
                       </Button>
                     </Stack>
@@ -699,15 +740,14 @@ export default function App() {
                   <Box sx={{ mb: 1, px: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
                     <Box component="img" src={manualTargetImage} alt="current-target" sx={{ width: 72, height: 46, objectFit: "cover", borderRadius: 1.25 }} />
                     <Stack spacing={0.5}>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{ color: "text.primary" }}>
                         現在の編集対象
                       </Typography>
                       <Button
                         size="small"
                         variant="text"
-                        color="inherit"
                         onClick={clearCurrentTarget}
-                        sx={{ alignSelf: "flex-start", minWidth: 0, px: 0.5 }}
+                        sx={{ alignSelf: "flex-start", minWidth: 0, px: 0.5, color: "text.primary" }}
                       >
                         解除
                       </Button>
@@ -724,7 +764,7 @@ export default function App() {
                         height: 38,
                         borderRadius: 2,
                         border: "none",
-                        color: "text.secondary"
+                        color: "text.primary"
                       }}
                     >
                       <AttachFileRoundedIcon fontSize="small" />
@@ -764,7 +804,7 @@ export default function App() {
                           height: 40,
                           borderRadius: 2,
                           backgroundColor: "transparent",
-                          color: "text.secondary",
+                          color: "text.primary",
                           "&:hover": {
                             backgroundColor: "rgba(255,255,255,0.06)",
                             color: "text.primary"
@@ -793,70 +833,100 @@ export default function App() {
           ) : null}
         </Paper>
 
-        <Paper
-          elevation={0}
+        <Box
           className="side-panel"
           sx={{
-            width: { xs: "100%", lg: 304 },
-            p: 1.25,
+            width: { xs: "100%", lg: 272 },
+            flexShrink: 0,
+            background: "#171717",
+            display: "flex",
+            flexDirection: "column",
             position: { xs: "static", lg: "sticky" },
-            top: { lg: 12 },
-            alignSelf: { lg: "flex-start" },
-            maxHeight: { lg: "calc(100vh - 24px)" },
-            overflow: { lg: "auto" }
+            top: 0,
+            height: { lg: "100vh" },
+            overflow: "auto",
+            p: 2
           }}
         >
-          <Card elevation={0} sx={{ borderRadius: 2, border: "none", backgroundColor: "rgba(46,46,46,0.86)" }}>
-            <CardContent>
-              <Stack spacing={1}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Session
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: "break-all" }}>
-                  {sessionId}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: "break-all" }}>
-                  {apiBaseUrl}
-                </Typography>
-                <TextField
-                  size="small"
-                  type="password"
-                  label="Access Token"
-                  placeholder="x-proxy-token"
-                  value={proxyTokenInput}
-                  onChange={(e) => setProxyTokenInput(e.target.value)}
-                  autoComplete="off"
-                />
-                <TextField
-                  size="small"
-                  label="Image Model"
-                  select
-                  value={modelInput}
-                  onChange={(e) => setModelInput(e.target.value)}
-                >
-                  {MODEL_OPTIONS.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {getModelLabel(option)}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  size="small"
-                  label="System Prompt"
-                  placeholder="AIへの基本指示を入力（省略可）"
-                  multiline
-                  minRows={3}
-                  maxRows={8}
-                  value={systemPromptInput}
-                  onChange={(e) => setSystemPromptInput(e.target.value)}
-                />
-                <Button variant="text" size="small" startIcon={<RestartAltRoundedIcon />} onClick={resetSession}>
-                  新規セッション
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Paper>
+          <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.82rem", mb: 2, display: "block" }}>
+            Session
+          </Typography>
+          <Stack spacing={1.5}>
+            <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary" }}>
+              {sessionId}
+            </Typography>
+            <TextField
+              size="small"
+              type="password"
+              label="Access Token"
+              placeholder="x-proxy-token"
+              value={proxyTokenInput}
+              onChange={(e) => setProxyTokenInput(e.target.value)}
+              autoComplete="off"
+              sx={{
+                "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
+                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+                "& .MuiInputLabel-root": { color: "text.primary" }
+              }}
+            />
+            <TextField
+              size="small"
+              label="Image Model"
+              select
+              value={modelInput}
+              onChange={(e) => setModelInput(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
+                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+                "& .MuiInputLabel-root": { color: "text.primary" }
+              }}
+            >
+              {MODEL_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {getModelLabel(option)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              size="small"
+              label="System Prompt"
+              placeholder="AIへの基本指示を入力（省略可）"
+              multiline
+              minRows={3}
+              maxRows={8}
+              value={systemPromptInput}
+              onChange={(e) => setSystemPromptInput(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
+                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+                "& .MuiInputLabel-root": { color: "text.primary" }
+              }}
+            />
+            {compareSlotBefore && compareSlotAfter ? (
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<CompareArrowsRoundedIcon />}
+                onClick={() => openCompare(compareSlotBefore, compareSlotAfter)}
+                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", fontWeight: 600, "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+              >
+                比較する
+              </Button>
+            ) : null}
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<RestartAltRoundedIcon />}
+              onClick={resetSession}
+              sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+            >
+              新規セッション
+            </Button>
+          </Stack>
+        </Box>
       </Stack>
 
       <Dialog open={Boolean(modalImage)} onClose={() => setModalImage("")} maxWidth="xl">
