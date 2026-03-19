@@ -70,7 +70,7 @@ export default function LoginPage({ onLogin }) {
         <Typography variant="h5" fontWeight={700} mb={1} color="text.primary" textAlign="center">
           Nano Banana
         </Typography>
-        <Typography variant="body2" color="text.secondary" mb={4} textAlign="center">
+        <Typography variant="body2" color="text.primary" mb={4} textAlign="center">
           {newPasswordMode ? "初回ログインのため新しいパスワードを設定してください" : "ログインしてください"}
         </Typography>
 
