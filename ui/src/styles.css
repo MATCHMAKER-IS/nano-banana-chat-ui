@@ -10,7 +10,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background: #212121;
-  font-family: "DM Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+  font-family: system-ui, "Segoe UI Variable", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
