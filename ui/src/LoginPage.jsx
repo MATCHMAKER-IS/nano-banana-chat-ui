@@ -87,6 +87,7 @@ export default function LoginPage({ onLogin }) {
               fullWidth
               autoFocus
               size="small"
+              sx={{ "& .MuiInputLabel-root": { color: "text.primary" }, "& .MuiInputBase-input": { color: "text.primary" } }}
             />
             <TextField
               label="パスワード"
@@ -96,6 +97,7 @@ export default function LoginPage({ onLogin }) {
               required
               fullWidth
               size="small"
+              sx={{ "& .MuiInputLabel-root": { color: "text.primary" }, "& .MuiInputBase-input": { color: "text.primary" } }}
             />
             <Button
               type="submit"
@@ -119,6 +121,7 @@ export default function LoginPage({ onLogin }) {
               autoFocus
               size="small"
               helperText="8文字以上、大文字・小文字・数字を含めてください"
+              sx={{ "& .MuiInputLabel-root": { color: "text.primary" }, "& .MuiInputBase-input": { color: "text.primary" } }}
             />
             <Button
               type="submit"
