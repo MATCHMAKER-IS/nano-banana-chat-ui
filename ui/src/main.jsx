@@ -29,7 +29,7 @@ const theme = createTheme({
     borderRadius: 12
   },
   typography: {
-    fontFamily: '"DM Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif'
+    fontFamily: '"Segoe UI Variable", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif'
   },
   components: {
     MuiPaper: {
