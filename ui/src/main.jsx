@@ -29,7 +29,7 @@ const theme = createTheme({
     borderRadius: 12
   },
   typography: {
-    fontFamily: '"Segoe UI Variable", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif'
+    fontFamily: 'system-ui, "Segoe UI Variable", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif'
   },
   components: {
     MuiPaper: {
