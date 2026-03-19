@@ -1,7 +1,9 @@
-﻿import React from "react";
+﻿import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import App from "./App";
+import LoginPage from "./LoginPage";
+import { getSession, signOut } from "./auth";
 import "./styles.css";
 
 const theme = createTheme({
@@ -59,11 +61,31 @@ const theme = createTheme({
   }
 });
 
-createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+function Root() {
+  const [loggedIn, setLoggedIn] = useState(null);
+
+  useEffect(() => {
+    getSession()
+      .then(() => setLoggedIn(true))
+      .catch(() => setLoggedIn(false));
+  }, []);
+
+  if (loggedIn === null) return null;
+
+  return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <App />
+      {loggedIn ? (
+        <App onSignOut={() => { signOut(); setLoggedIn(false); }} />
+      ) : (
+        <LoginPage onLogin={() => setLoggedIn(true)} />
+      )}
     </ThemeProvider>
+  );
+}
+
+createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <Root />
   </React.StrictMode>
 );

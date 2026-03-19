@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { getIdToken } from "./auth";
 import {
   Alert,
   Box,
@@ -99,10 +100,10 @@ async function shrinkDataUrlIfNeeded(dataUrl, maxEdge = 1536) {
   return canvas.toDataURL("image/jpeg", 0.9);
 }
 
-async function callEditApi({ apiBaseUrl, proxyToken, prompt, systemPrompt, imageDataUrl, sessionId, model }) {
+async function callEditApi({ apiBaseUrl, prompt, systemPrompt, imageDataUrl, sessionId, model }) {
   const { mimeType, base64 } = parseDataUrl(imageDataUrl);
-  const headers = { "Content-Type": "application/json" };
-  if (proxyToken) headers["x-proxy-token"] = proxyToken;
+  const idToken = await getIdToken();
+  const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` };
 
   const res = await fetch(`${apiBaseUrl}/api/edit`, {
     method: "POST",
@@ -166,16 +167,8 @@ function MessageImage({ src, alt, onClick }) {
   );
 }
 
-export default function App() {
+export default function App({ onSignOut }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8787";
-  const [proxyTokenInput, setProxyTokenInput] = useState(() => {
-    try {
-      return localStorage.getItem(PROXY_TOKEN_STORAGE_KEY) || (import.meta.env.VITE_PROXY_TOKEN || "");
-    } catch {
-      return import.meta.env.VITE_PROXY_TOKEN || "";
-    }
-  });
-  const proxyToken = proxyTokenInput.trim();
   const [modelInput, setModelInput] = useState(() => {
     try {
       return localStorage.getItem(MODEL_STORAGE_KEY) || DEFAULT_MODEL;
@@ -235,14 +228,6 @@ export default function App() {
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
-  useEffect(() => {
-    try {
-      if (proxyTokenInput) localStorage.setItem(PROXY_TOKEN_STORAGE_KEY, proxyTokenInput);
-      else localStorage.removeItem(PROXY_TOKEN_STORAGE_KEY);
-    } catch {
-      // ignore storage errors
-    }
-  }, [proxyTokenInput]);
 
   useEffect(() => {
     try {
@@ -388,7 +373,6 @@ export default function App() {
     try {
       const result = await callEditApi({
         apiBaseUrl,
-        proxyToken,
         prompt: usedPrompt,
         systemPrompt: systemPromptInput.trim(),
         imageDataUrl: inputImage,
@@ -751,21 +735,14 @@ export default function App() {
             <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary" }}>
               {sessionId}
             </Typography>
-            <TextField
+            <Button
+              variant="text"
               size="small"
-              type="password"
-              label="Access Token"
-              placeholder="x-proxy-token"
-              value={proxyTokenInput}
-              onChange={(e) => setProxyTokenInput(e.target.value)}
-              autoComplete="off"
-              sx={{
-                "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
-                "& .MuiInputLabel-root": { color: "text.primary" }
-              }}
-            />
+              onClick={onSignOut}
+              sx={{ color: "text.secondary", justifyContent: "flex-start", px: 0, fontSize: "0.8rem" }}
+            >
+              ログアウト
+            </Button>
             <TextField
               size="small"
               label="Image Model"
