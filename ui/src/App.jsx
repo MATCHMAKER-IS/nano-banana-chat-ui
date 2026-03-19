@@ -735,14 +735,13 @@ export default function App({ onSignOut }) {
             <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary" }}>
               {sessionId}
             </Typography>
-            <Button
-              variant="text"
-              size="small"
+            <Typography
+              component="button"
               onClick={onSignOut}
-              sx={{ color: "text.secondary", justifyContent: "flex-start", px: 0, fontSize: "0.8rem" }}
+              sx={{ color: "#8e8ea0", fontSize: "0.8rem", background: "none", border: "none", cursor: "pointer", p: 0, display: "block", textAlign: "left", "&:hover": { color: "#ececec" } }}
             >
               ログアウト
-            </Button>
+            </Typography>
             <TextField
               size="small"
               label="Image Model"
