@@ -790,8 +790,8 @@ export default function App({ onSignOut }) {
           <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.82rem", mb: 2, display: "block" }}>
             Session
           </Typography>
-          <Stack spacing={1.5}>
-            <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary", mb: 1.5 }}>
+          <Stack spacing={2}>
+            <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary", pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               {sessionId}
             </Typography>
             <TextField
