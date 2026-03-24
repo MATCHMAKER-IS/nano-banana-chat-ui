@@ -65,7 +65,6 @@ function jsonResponse(statusCode, body, requestOrigin) {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-      ...corsHeaders(requestOrigin),
     },
     body: JSON.stringify(body),
   };
@@ -165,16 +164,9 @@ export const handler = async (event) => {
 
   const respond = (statusCode, body) => jsonResponse(statusCode, body, requestOrigin);
 
-  // OPTIONSプリフライト
+  // OPTIONSプリフライトはLambda Function URLが処理
   if (method === "OPTIONS") {
-    if (!isAllowedOrigin(requestOrigin)) {
-      return respond(403, { error: "forbidden_origin" });
-    }
-    return {
-      statusCode: 204,
-      headers: corsHeaders(requestOrigin),
-      body: "",
-    };
+    return { statusCode: 204, headers: {}, body: "" };
   }
 
   if (path !== "/api/edit" || method !== "POST") {

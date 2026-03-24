@@ -25,6 +25,7 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 
 const PSEUDO_STEPS = ["画像を読み込み中", "編集内容を解析中", "編集リクエストを送信中", "画像を生成中", "最終調整中"];
 const PROXY_TOKEN_STORAGE_KEY = "nano_banana_proxy_token";
@@ -174,7 +175,8 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function MessageImage({ src, alt, onClick }) {
+function MessageImage({ src, alt, onClick, variant = "generated" }) {
+  const isThumb = variant === "thumb";
   return (
     <Box
       component="img"
@@ -182,8 +184,11 @@ function MessageImage({ src, alt, onClick }) {
       alt={alt}
       onClick={onClick}
       sx={{
-        width: "min(220px, 100%)",
-        borderRadius: 1.25,
+        width: isThumb ? "110px" : "100%",
+        height: isThumb ? "110px" : "auto",
+        maxWidth: isThumb ? "110px" : "360px",
+        objectFit: isThumb ? "cover" : "contain",
+        borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
         backgroundColor: "#2a2a2a"
@@ -531,77 +536,67 @@ export default function App({ onSignOut }) {
           {hasMessages ? (
             <Box sx={{ p: 2, overflow: "auto", display: "grid", gap: 1.5, alignContent: "start", flex: 1, minHeight: 0 }}>
               {messages.map((m) => (
-                <Box key={m.id} sx={{ display: "flex", justifyContent: m.role === "assistant" ? "flex-start" : "flex-end" }}>
-                  {/** 直前生成画像を参照するだけのユーザー発話では、重複プレビューを出さない */}
+                <Box key={m.id} sx={{ display: "flex", flexDirection: "column", alignItems: m.role === "assistant" ? "flex-start" : "flex-end", gap: 0.75 }}>
                   {(() => {
                     const hideUserPreview = m.role === "user" && m.attachmentName === "直前の生成画像";
                     const showMessageImage = Boolean(m.image) && !hideUserPreview;
-                    return (
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      width: "fit-content",
-                      maxWidth: m.role === "assistant" ? "min(760px, 100%)" : "min(680px, 82%)",
-                      p: m.role === "assistant" ? "10px 4px" : "10px 16px",
-                      borderRadius: m.role === "assistant" ? 0 : "18px",
-                      border: "none",
-                      borderColor: "transparent",
-                      background: m.role === "assistant" ? "transparent" : "#2f2f2f"
-                    }}
-                  >
-                    {m.role === "assistant" && (
-                      <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", mb: 0.75 }}>
-                        AI
-                      </Typography>
-                    )}
-                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "0.9375rem" }}>
-                      {m.text}
-                    </Typography>
-
-                    {showMessageImage ? (
-                      <Stack spacing={1} sx={{ mt: 1 }}>
-                        <MessageImage src={m.image} alt="message" onClick={() => setModalImage(m.image)} />
-                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                          <Button size="small" variant="text" onClick={() => setAsCurrentTarget(m.image)}>
-                            {!pendingAttachment && manualTargetImage === m.image ? "編集中" : "編集対象にする"}
-                          </Button>
-                          {m.role === "assistant" && !m.pending && m.beforeImage && m.image ? (
-                            <Button
-                              size="small"
-                              variant="text"
-                              startIcon={<CompareArrowsRoundedIcon />}
-                              onClick={() => openCompare(m.beforeImage, m.image)}
-                            >
-                              比較
-                            </Button>
-                          ) : null}
-                          <Button
-                            size="small"
-                            variant="text"
-                            startIcon={<DownloadRoundedIcon />}
-                            onClick={() => downloadDataUrl(m.image, "edited-image.png")}
-                          >
-                            保存
-                          </Button>
-                        </Stack>
-                      </Stack>
-                    ) : null}
-
-                    {m.attachmentName ? (
-                      <Typography variant="caption" sx={{ mt: 1, display: "block", color: "text.primary" }}>
-                        添付: {m.attachmentName}
-                      </Typography>
-                    ) : null}
-
-                    {m.pending ? (
-                      <Typography variant="caption" sx={{ mt: 1, display: "inline-flex", alignItems: "center", color: "text.primary" }}>
-                        <Box component="span" className="thinking-text">
-                          生成中
+                    return (<>
+                      {/* ユーザー画像：独立したカード */}
+                      {m.role === "user" && showMessageImage && (
+                        <Box sx={{ borderRadius: "12px", overflow: "hidden", width: "fit-content" }}>
+                          <MessageImage src={m.image} alt="message" onClick={() => setModalImage(m.image)} variant="thumb" />
                         </Box>
-                      </Typography>
-                    ) : null}
-                  </Paper>
-                    );
+                      )}
+
+                      {/* テキスト or AIメッセージ */}
+                      {(m.text || m.role === "assistant") && (
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            width: "fit-content",
+                            maxWidth: m.role === "assistant" ? "min(760px, 100%)" : "min(400px, 90%)",
+                            p: m.role === "assistant" ? "10px 4px" : "10px 16px",
+                            borderRadius: m.role === "assistant" ? 0 : "18px",
+                            border: "none",
+                            background: m.role === "assistant" ? "transparent" : "#2f2f2f"
+                          }}
+                        >
+                          {m.role === "assistant" && (
+                            <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", mb: 0.75 }}>
+                              AI
+                            </Typography>
+                          )}
+                          {m.text ? (
+                            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "0.9375rem" }}>
+                              {m.text}
+                            </Typography>
+                          ) : null}
+
+                          {/* アシスタントメッセージの画像 */}
+                          {m.role === "assistant" && showMessageImage ? (
+                            <Stack spacing={1} sx={{ mt: 1 }}>
+                              <MessageImage src={m.image} alt="message" onClick={() => setModalImage(m.image)} />
+                              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                                {!m.pending && m.beforeImage && m.image ? (
+                                  <Button size="small" variant="text" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCompare(m.beforeImage, m.image)}>
+                                    比較
+                                  </Button>
+                                ) : null}
+                                <Button size="small" variant="text" startIcon={<DownloadRoundedIcon />} onClick={() => downloadDataUrl(m.image, "edited-image.png")}>
+                                  保存
+                                </Button>
+                              </Stack>
+                            </Stack>
+                          ) : null}
+
+                          {m.pending ? (
+                            <Typography variant="caption" sx={{ mt: 1, display: "inline-flex", alignItems: "center", color: "text.primary" }}>
+                              <Box component="span" className="thinking-text">生成中</Box>
+                            </Typography>
+                          ) : null}
+                        </Paper>
+                      )}
+                    </>);
                   })()}
                 </Box>
               ))}
@@ -823,17 +818,44 @@ export default function App({ onSignOut }) {
         </Box>
       </Stack>
 
-      <Dialog open={Boolean(modalImage)} onClose={() => setModalImage("")} maxWidth="xl">
-        <DialogTitle sx={{ pr: 6 }}>
-          Preview
-          <IconButton onClick={() => setModalImage("")} sx={{ position: "absolute", right: 8, top: 8 }}>
+      {/* フルスクリーン画像プレビュー */}
+      {Boolean(modalImage) && (
+        <Box
+          onClick={() => setModalImage("")}
+          sx={{
+            position: "fixed", inset: 0, zIndex: 1300,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "zoom-out"
+          }}
+        >
+          <IconButton
+            onClick={(e) => { e.stopPropagation(); const a = document.createElement("a"); a.href = modalImage; a.download = "image.png"; a.click(); }}
+            sx={{ position: "fixed", top: 16, right: 112, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
+          >
+            <DownloadRoundedIcon />
+          </IconButton>
+          <IconButton
+            onClick={async (e) => { e.stopPropagation(); try { const res = await fetch(modalImage); const blob = await res.blob(); await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]); } catch {} }}
+            sx={{ position: "fixed", top: 16, right: 64, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
+          >
+            <ContentCopyRoundedIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => setModalImage("")}
+            sx={{ position: "fixed", top: 16, right: 16, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
+          >
             <CloseRoundedIcon />
           </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {modalImage ? <Box component="img" src={modalImage} alt="zoom" sx={{ maxWidth: "90vw", maxHeight: "80vh", borderRadius: 0 }} /> : null}
-        </DialogContent>
-      </Dialog>
+          <Box
+            component="img"
+            src={modalImage}
+            alt="zoom"
+            onClick={(e) => e.stopPropagation()}
+            sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: "12px", cursor: "default" }}
+          />
+        </Box>
+      )}
 
       <Dialog open={Boolean(compareModal)} onClose={() => setCompareModal(null)} fullWidth maxWidth="xl"
         PaperProps={{ sx: { background: "#1a1a1a", borderRadius: "12px" } }}>
