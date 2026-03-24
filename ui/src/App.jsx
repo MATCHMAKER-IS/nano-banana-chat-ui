@@ -184,11 +184,11 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
       alt={alt}
       onClick={onClick}
       sx={{
-        width: isThumb ? "110px" : "100%",
+        width: isThumb ? "110px" : "auto",
         height: isThumb ? "110px" : "auto",
-        maxWidth: isThumb ? "110px" : "min(800px, 100%)",
+        maxWidth: isThumb ? "110px" : "min(460px, 100%)",
         maxHeight: isThumb ? "110px" : undefined,
-        objectFit: isThumb ? "cover" : "fill",
+        objectFit: isThumb ? "cover" : undefined,
         borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
