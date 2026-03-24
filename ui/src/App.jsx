@@ -58,7 +58,7 @@ function getModelLabel(modelId) {
 
 function parseDataUrl(dataUrl) {
   const match = dataUrl.match(/^data:(.+?);base64,(.+)$/);
-  if (!match) throw new Error("Invalid data URL");
+  if (!match) throw new Error("画像データの形式が正しくありません。");
   return { mimeType: match[1], base64: match[2] };
 }
 
@@ -126,33 +126,33 @@ async function callEditApi({ apiBaseUrl, prompt, systemPrompt, imageDataUrl, ses
     json = await res.json();
   } catch {
     if (res.status === 502 || res.status === 503) {
-      throw new Error("サーバーが応答できませんでした。時間をおいて再試行してください。（原因: サーバー一時エラー）");
+      throw new Error("サーバーが応答できませんでした。しばらく待ってから再試行してください。解決しない場合は情シス曾根崎までお知らせください。");
     }
     if (res.status === 504) {
-      throw new Error("処理がタイムアウトしました。画像サイズを小さくして再試行してください。");
+      throw new Error("処理がタイムアウトしました。画像サイズを小さくして再試行してください。それでも解決しない場合は情シス曾根崎までお知らせください。");
     }
-    throw new Error(`サーバーから予期しない応答がありました。（ステータス: ${res.status}）`);
+    throw new Error(`サーバーから予期しない応答がありました。情シス曾根崎までお知らせください。（ステータス: ${res.status}）`);
   }
 
   if (!res.ok) {
     const errorCode = json?.error;
     if (errorCode === "gemini_request_failed") {
-      throw new Error("AIモデルが応答しませんでした。別のモデルに切り替えるか、時間をおいて再試行してください。");
+      throw new Error("AIモデルが応答しませんでした。右のImage Modelを別のモデルに切り替えて再試行してください。解決しない場合は情シス曾根崎までお知らせください。");
     }
     if (errorCode === "no_image_part") {
-      throw new Error("AIが画像を生成しませんでした。プロンプトを変更して再試行してください。");
+      throw new Error("AIが画像を生成できませんでした。プロンプトに不適切な表現が含まれている可能性があります。指示の内容を変えて再試行してください。");
     }
     if (errorCode === "image_required") {
-      throw new Error("画像が添付されていません。画像を選択してから送信してください。");
+      throw new Error("画像が添付されていません。左下の📎ボタンをクリックするか、画像ファイルをチャット欄にドラッグ＆ドロップして添付してから送信してください。");
     }
     if (res.status === 401 || res.status === 403) {
-      throw new Error("認証エラーが発生しました。一度ログアウトして再ログインしてください。");
+      throw new Error("認証エラーが発生しました。一度ログアウトして再ログインしてください。それでも解決しない場合は情シス曾根崎までお知らせください。");
     }
-    throw new Error(json?.hint || json?.error || "リクエストが失敗しました。再試行してください。");
+    throw new Error(json?.hint || json?.error || "リクエストが失敗しました。再試行してください。解決しない場合は情シス曾根崎までお知らせください。");
   }
 
   if (!json.editedImageBase64 || !json.mimeType) {
-    throw new Error("AIから画像が返されませんでした。プロンプトを変更して再試行してください。");
+    throw new Error("AIが画像を返しませんでした。指示が曖昧すぎる場合や、AIが対応できない編集内容の場合に発生します。プロンプトをより具体的に書き直して再試行してください。");
   }
 
   return {
@@ -457,13 +457,12 @@ export default function App({ onSignOut }) {
     } catch (err) {
       let message = err instanceof Error ? err.message : String(err);
       if (message.includes("gemini_timeout")) {
-        message = "応答がタイムアウトしました。画像サイズを小さくして再試行してください。";
+        message = "応答がタイムアウトしました。画像サイズを小さくして再試行してください。それでも解決しない場合は情シス曾根崎までお知らせください。";
       } else if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
-        message = "ネットワークエラーが発生しました。インターネット接続を確認して再試行してください。";
+        message = "ネットワークエラーが発生しました。インターネット接続を確認して再試行してください。解決しない場合は情シス曾根崎までお知らせください。";
       } else if (message.includes("Unexpected token") || message.includes("is not valid JSON")) {
-        message = "サーバーから予期しない応答がありました。時間をおいて再試行してください。";
+        message = "サーバーから予期しない応答がありました。時間をおいて再試行してください。解決しない場合は情シス曾根崎までお知らせください。";
       }
-      setError(message);
       setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, pending: false, text: message, error: true } : m)));
     } finally {
       setLoading(false);
@@ -755,13 +754,6 @@ export default function App({ onSignOut }) {
             </Box>
           </Box>
 
-          {error ? (
-            <Box sx={{ px: 1.25, pb: 1.25 }}>
-              <Alert severity="error">
-                {error}
-              </Alert>
-            </Box>
-          ) : null}
         </Paper>
 
         <Box
