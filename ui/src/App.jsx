@@ -251,7 +251,7 @@ export default function App({ onSignOut }) {
   const [sliderPos, setSliderPos] = useState(50);
   const [compareAspect, setCompareAspect] = useState("16/9");
   const [targetNoticeOpen, setTargetNoticeOpen] = useState(false);
-  const [sessionWidth, setSessionWidth] = useState(272);
+  const [sessionWidth, setSessionWidth] = useState(320);
 
   const formRef = useRef(null);
   const endRef = useRef(null);
@@ -791,7 +791,7 @@ export default function App({ onSignOut }) {
             Session
           </Typography>
           <Stack spacing={1.5}>
-            <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary" }}>
+            <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary", mb: 1.5 }}>
               {sessionId}
             </Typography>
             <TextField
@@ -829,22 +829,24 @@ export default function App({ onSignOut }) {
                 "& .MuiInputLabel-root": { color: "text.primary" }
               }}
             />
-            <Button
-              variant="text"
-              size="small"
-              onClick={resetSession}
-              sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
-            >
-              新規セッション
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              onClick={onSignOut}
-              sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
-            >
-              ログアウト
-            </Button>
+            <Stack spacing={0.5}>
+              <Button
+                variant="text"
+                size="small"
+                onClick={resetSession}
+                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+              >
+                新規セッション
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                onClick={onSignOut}
+                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+              >
+                ログアウト
+              </Button>
+            </Stack>
           </Stack>
         </Box>
       </Stack>
