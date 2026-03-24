@@ -120,13 +120,38 @@ async function callEditApi({ apiBaseUrl, prompt, systemPrompt, imageDataUrl, ses
     })
   });
 
-  const json = await res.json();
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    if (res.status === 502 || res.status === 503) {
+      throw new Error("サーバーが応答できませんでした。時間をおいて再試行してください。（原因: サーバー一時エラー）");
+    }
+    if (res.status === 504) {
+      throw new Error("処理がタイムアウトしました。画像サイズを小さくして再試行してください。");
+    }
+    throw new Error(`サーバーから予期しない応答がありました。（ステータス: ${res.status}）`);
+  }
+
   if (!res.ok) {
-    throw new Error(json?.hint || json?.error || JSON.stringify(json?.details || "Request failed"));
+    const errorCode = json?.error;
+    if (errorCode === "gemini_request_failed") {
+      throw new Error("AIモデルが応答しませんでした。別のモデルに切り替えるか、時間をおいて再試行してください。");
+    }
+    if (errorCode === "no_image_part") {
+      throw new Error("AIが画像を生成しませんでした。プロンプトを変更して再試行してください。");
+    }
+    if (errorCode === "image_required") {
+      throw new Error("画像が添付されていません。画像を選択してから送信してください。");
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("認証エラーが発生しました。一度ログアウトして再ログインしてください。");
+    }
+    throw new Error(json?.hint || json?.error || "リクエストが失敗しました。再試行してください。");
   }
 
   if (!json.editedImageBase64 || !json.mimeType) {
-    throw new Error("No image returned from API");
+    throw new Error("AIから画像が返されませんでした。プロンプトを変更して再試行してください。");
   }
 
   return {
@@ -401,8 +426,15 @@ export default function App({ onSignOut }) {
 
       endRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message.includes("gemini_timeout") ? "応答がタイムアウトしました。サイズを下げるか、時間をおいて再試行してください。" : message);
+      let message = err instanceof Error ? err.message : String(err);
+      if (message.includes("gemini_timeout")) {
+        message = "応答がタイムアウトしました。画像サイズを小さくして再試行してください。";
+      } else if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+        message = "ネットワークエラーが発生しました。インターネット接続を確認して再試行してください。";
+      } else if (message.includes("Unexpected token") || message.includes("is not valid JSON")) {
+        message = "サーバーから予期しない応答がありました。時間をおいて再試行してください。";
+      }
+      setError(message);
       setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, pending: false, text: message, error: true } : m)));
     } finally {
       setLoading(false);
