@@ -182,7 +182,7 @@ function MessageImage({ src, alt, onClick }) {
       alt={alt}
       onClick={onClick}
       sx={{
-        width: "min(560px, 100%)",
+        width: "min(220px, 100%)",
         borderRadius: 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
