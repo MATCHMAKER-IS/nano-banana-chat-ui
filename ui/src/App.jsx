@@ -540,7 +540,7 @@ export default function App({ onSignOut }) {
                   <Paper
                     elevation={0}
                     sx={{
-                      width: m.role === "assistant" ? "100%" : "fit-content",
+                      width: "fit-content",
                       maxWidth: m.role === "assistant" ? "min(760px, 100%)" : "min(680px, 82%)",
                       p: m.role === "assistant" ? "10px 4px" : "10px 16px",
                       borderRadius: m.role === "assistant" ? 0 : "18px",
