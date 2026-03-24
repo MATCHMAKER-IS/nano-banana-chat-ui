@@ -794,14 +794,6 @@ export default function App({ onSignOut }) {
             <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary" }}>
               {sessionId}
             </Typography>
-            <Button
-              variant="text"
-              size="small"
-              onClick={onSignOut}
-              sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
-            >
-              ログアウト
-            </Button>
             <TextField
               size="small"
               label="Image Model"
@@ -840,11 +832,18 @@ export default function App({ onSignOut }) {
             <Button
               variant="text"
               size="small"
-              startIcon={<RestartAltRoundedIcon />}
               onClick={resetSession}
               sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
             >
               新規セッション
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              onClick={onSignOut}
+              sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+            >
+              ログアウト
             </Button>
           </Stack>
         </Box>
