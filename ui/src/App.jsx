@@ -186,9 +186,9 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
       sx={{
         width: isThumb ? "110px" : "100%",
         height: isThumb ? "110px" : "auto",
-        maxWidth: isThumb ? "110px" : "min(560px, 100%)",
-        maxHeight: isThumb ? "110px" : "420px",
-        objectFit: isThumb ? "cover" : "contain",
+        maxWidth: isThumb ? "110px" : "min(800px, 100%)",
+        maxHeight: isThumb ? "110px" : undefined,
+        objectFit: isThumb ? "cover" : "fill",
         borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
