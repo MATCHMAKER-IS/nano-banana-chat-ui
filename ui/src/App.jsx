@@ -186,7 +186,8 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
       sx={{
         width: isThumb ? "110px" : "100%",
         height: isThumb ? "110px" : "auto",
-        maxWidth: isThumb ? "110px" : "360px",
+        maxWidth: isThumb ? "110px" : "min(560px, 100%)",
+        maxHeight: isThumb ? "110px" : "420px",
         objectFit: isThumb ? "cover" : "contain",
         borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
@@ -250,6 +251,7 @@ export default function App({ onSignOut }) {
   const [sliderPos, setSliderPos] = useState(50);
   const [compareAspect, setCompareAspect] = useState("16/9");
   const [targetNoticeOpen, setTargetNoticeOpen] = useState(false);
+  const [sessionWidth, setSessionWidth] = useState(272);
 
   const formRef = useRef(null);
   const endRef = useRef(null);
@@ -257,6 +259,28 @@ export default function App({ onSignOut }) {
   const sliderDraggingRef = useRef(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
+  const sessionResizingRef = useRef(false);
+
+  const onSessionResizeStart = (e) => {
+    e.preventDefault();
+    sessionResizingRef.current = true;
+    const onMove = (ev) => {
+      if (!sessionResizingRef.current) return;
+      const newW = Math.min(600, Math.max(200, window.innerWidth - (ev.clientX || ev.touches?.[0]?.clientX)));
+      setSessionWidth(newW);
+    };
+    const onUp = () => {
+      sessionResizingRef.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("touchend", onUp);
+  };
 
 
   useEffect(() => {
@@ -743,7 +767,7 @@ export default function App({ onSignOut }) {
         <Box
           className="side-panel"
           sx={{
-            width: { xs: "100%", lg: 272 },
+            width: { xs: "100%", lg: sessionWidth },
             flexShrink: 0,
             background: "#171717",
             display: "flex",
@@ -755,6 +779,22 @@ export default function App({ onSignOut }) {
             p: 2
           }}
         >
+          {/* ドラッグリサイズハンドル */}
+          <Box
+            onMouseDown={onSessionResizeStart}
+            onTouchStart={onSessionResizeStart}
+            sx={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: "4px",
+              cursor: "col-resize",
+              zIndex: 10,
+              "&:hover": { background: "rgba(255,255,255,0.15)" },
+              transition: "background 0.2s"
+            }}
+          />
           <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.82rem", mb: 2, display: "block" }}>
             Session
           </Typography>
@@ -857,98 +897,105 @@ export default function App({ onSignOut }) {
         </Box>
       )}
 
-      <Dialog open={Boolean(compareModal)} onClose={() => setCompareModal(null)} fullWidth maxWidth="xl"
-        PaperProps={{ sx: { background: "#1a1a1a", borderRadius: "12px" } }}>
-        <DialogTitle sx={{ color: "text.primary", pr: 6, fontSize: "0.95rem", fontWeight: 600 }}>
-          Before / After
-          <IconButton onClick={() => setCompareModal(null)} sx={{ position: "absolute", right: 8, top: 8, color: "text.primary" }}>
+      {compareModal && (
+        <Box
+          onClick={() => setCompareModal(null)}
+          sx={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.95)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          {/* 閉じるボタン */}
+          <IconButton
+            onClick={() => setCompareModal(null)}
+            sx={{ position: "fixed", top: 16, right: 16, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
+          >
             <CloseRoundedIcon />
           </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pb: 3 }}>
-          {compareModal ? (
+          {/* Before/After ラベル（右上） */}
+          <Box sx={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", color: "#fff", fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.08em", opacity: 0.7, pointerEvents: "none" }}>
+            Before / After
+          </Box>
+          <Box
+            ref={sliderContainerRef}
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: "relative",
+              width: "90vw",
+              maxWidth: "1200px",
+              maxHeight: "90vh",
+              aspectRatio: compareAspect,
+              overflow: "hidden",
+              userSelect: "none",
+              background: "#000",
+              borderRadius: "12px",
+              touchAction: "none",
+            }}
+            onPointerMove={onSliderContainerMove}
+            onPointerUp={onSliderContainerUp}
+            onPointerLeave={onSliderContainerUp}
+          >
+            {/* After image */}
             <Box
-              ref={sliderContainerRef}
-              sx={{
-                position: "relative",
-                width: "100%",
-                maxHeight: "85vh",
-                aspectRatio: compareAspect,
-                overflow: "hidden",
-                userSelect: "none",
-                background: "#000",
-                borderRadius: "8px",
-                touchAction: "none",
+              component="img"
+              src={compareModal.after}
+              alt="after"
+              draggable={false}
+              onLoad={(e) => {
+                const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                if (w && h) setCompareAspect(`${w}/${h}`);
               }}
-              onPointerMove={onSliderContainerMove}
-              onPointerUp={onSliderContainerUp}
-              onPointerLeave={onSliderContainerUp}
-            >
-              {/* After image */}
-              <Box
-                component="img"
-                src={compareModal.after}
-                alt="after"
-                draggable={false}
-                onLoad={(e) => {
-                  const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
-                  if (w && h) setCompareAspect(`${w}/${h}`);
-                }}
-                sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-              />
-              {/* Before image with clip */}
-              <Box
-                component="img"
-                src={compareModal.before}
-                alt="before"
-                draggable={false}
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  clipPath: `inset(0 ${(100 - sliderPos).toFixed(2)}% 0 0)`,
-                  display: "block"
-                }}
-              />
-              {/* Before label */}
-              <Box sx={{ position: "absolute", top: 12, left: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
-                Before
-              </Box>
-              {/* After label */}
-              <Box sx={{ position: "absolute", top: 12, right: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
-                After
-              </Box>
-              {/* Divider line */}
-              <Box sx={{ position: "absolute", top: 0, bottom: 0, left: `${sliderPos}%`, width: "2px", background: "#fff", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 10, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
-              {/* Drag handle */}
-              <Box
-                onPointerDown={onSliderPointerDown}
-                sx={{
-                  position: "absolute",
-                  top: "50%",
-                  left: `${sliderPos}%`,
-                  transform: "translate(-50%, -50%)",
-                  width: 40,
-                  height: 40,
-                  borderRadius: "50%",
-                  background: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "ew-resize",
-                  zIndex: 11,
-                  boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
-                  "&:hover": { transform: "translate(-50%, -50%) scale(1.12)", transition: "transform 0.1s" }
-                }}
-              >
-                <CompareArrowsRoundedIcon sx={{ color: "#111", fontSize: 18 }} />
-              </Box>
+              sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+            />
+            {/* Before image with clip */}
+            <Box
+              component="img"
+              src={compareModal.before}
+              alt="before"
+              draggable={false}
+              sx={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                clipPath: `inset(0 ${(100 - sliderPos).toFixed(2)}% 0 0)`,
+                display: "block"
+              }}
+            />
+            {/* Before label */}
+            <Box sx={{ position: "absolute", top: 12, left: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
+              Before
             </Box>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+            {/* After label */}
+            <Box sx={{ position: "absolute", top: 12, right: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
+              After
+            </Box>
+            {/* Divider line */}
+            <Box sx={{ position: "absolute", top: 0, bottom: 0, left: `${sliderPos}%`, width: "2px", background: "#fff", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 10, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
+            {/* Drag handle */}
+            <Box
+              onPointerDown={onSliderPointerDown}
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: `${sliderPos}%`,
+                transform: "translate(-50%, -50%)",
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "ew-resize",
+                zIndex: 11,
+                boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+                "&:hover": { transform: "translate(-50%, -50%) scale(1.12)", transition: "transform 0.1s" }
+              }}
+            >
+              <CompareArrowsRoundedIcon sx={{ color: "#111", fontSize: 18 }} />
+            </Box>
+          </Box>
+        </Box>
+      )}
 
       <Snackbar
         open={targetNoticeOpen}
