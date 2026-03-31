@@ -1,33 +1,65 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const DEFAULT_MODEL = "gemini-3.1-flash-image-preview";
-const GEMINI_TIMEOUT_MS = 85000;
+const GEMINI_TIMEOUT_MS = 270000; // 4分30秒（Lambdaの5分タイムアウトより少し短く）
 const MAX_RETRY = 1;
 
-// Cognitoの公開鍵をキャッシュ
+const ZOHO_BASE = "https://accounts.zoho.com";
+
+// ZohoのJWKS（公開鍵）をキャッシュ
 let _jwks = null;
 function getJwks() {
   if (!_jwks) {
-    const userPoolId = process.env.COGNITO_USER_POOL_ID;
-    const region = userPoolId?.split("_")[0] || "ap-northeast-1";
-    const url = `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
-    _jwks = createRemoteJWKSet(new URL(url));
+    _jwks = createRemoteJWKSet(new URL(`${ZOHO_BASE}/oauth/v2/certs`));
   }
   return _jwks;
 }
 
-async function verifyCognitoToken(authHeader) {
+async function verifyZohoToken(authHeader) {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
   try {
     const { payload } = await jwtVerify(token, getJwks(), {
-      issuer: `https://cognito-idp.${process.env.COGNITO_USER_POOL_ID?.split("_")[0] || "ap-northeast-1"}.amazonaws.com/${process.env.COGNITO_USER_POOL_ID}`,
-      audience: process.env.COGNITO_CLIENT_ID,
+      issuer: ZOHO_BASE,
+      audience: process.env.ZOHO_CLIENT_ID,
     });
     return payload;
   } catch {
     return null;
   }
+}
+
+// OAuthコード → トークン交換
+async function exchangeCodeForTokens(code) {
+  const params = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: process.env.ZOHO_CLIENT_ID,
+    client_secret: process.env.ZOHO_CLIENT_SECRET,
+    redirect_uri: process.env.ZOHO_REDIRECT_URI,
+    code,
+  });
+  const res = await fetch(`${ZOHO_BASE}/oauth/v2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+  return res.json();
+}
+
+// リフレッシュトークンで更新
+async function refreshAccessToken(refreshToken) {
+  const params = new URLSearchParams({
+    grant_type: "refresh_token",
+    client_id: process.env.ZOHO_CLIENT_ID,
+    client_secret: process.env.ZOHO_CLIENT_SECRET,
+    refresh_token: refreshToken,
+  });
+  const res = await fetch(`${ZOHO_BASE}/oauth/v2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+  return res.json();
 }
 
 function getAllowedOrigins() {
@@ -65,6 +97,7 @@ function jsonResponse(statusCode, body, requestOrigin) {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
+      ...corsHeaders(requestOrigin),
     },
     body: JSON.stringify(body),
   };
@@ -164,11 +197,67 @@ export const handler = async (event) => {
 
   const respond = (statusCode, body) => jsonResponse(statusCode, body, requestOrigin);
 
-  // OPTIONSプリフライトはLambda Function URLが処理
+  // OPTIONSプリフライト
   if (method === "OPTIONS") {
-    return { statusCode: 204, headers: {}, body: "" };
+    return {
+      statusCode: 204,
+      headers: corsHeaders(requestOrigin),
+      body: "",
+    };
   }
 
+  // ─── /oauth/token : 認証コード → トークン交換 ───────────────────────
+  if (path === "/oauth/token" && method === "POST") {
+    let body;
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return respond(400, { error: "invalid_json" });
+    }
+
+    const { code } = body;
+    if (!code) return respond(400, { error: "code_required" });
+
+    const tokenData = await exchangeCodeForTokens(code);
+
+    if (tokenData.error) {
+      return respond(400, { error: "zoho_token_error", detail: tokenData.error });
+    }
+
+    return respond(200, {
+      id_token: tokenData.id_token,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_in: tokenData.expires_in,
+    });
+  }
+
+  // ─── /oauth/refresh : トークン更新 ──────────────────────────────────
+  if (path === "/oauth/refresh" && method === "POST") {
+    let body;
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return respond(400, { error: "invalid_json" });
+    }
+
+    const { refresh_token } = body;
+    if (!refresh_token) return respond(400, { error: "refresh_token_required" });
+
+    const tokenData = await refreshAccessToken(refresh_token);
+
+    if (tokenData.error) {
+      return respond(401, { error: "refresh_failed", detail: tokenData.error });
+    }
+
+    return respond(200, {
+      id_token: tokenData.id_token,
+      access_token: tokenData.access_token,
+      expires_in: tokenData.expires_in,
+    });
+  }
+
+  // ─── /api/edit : 画像編集 ────────────────────────────────────────────
   if (path !== "/api/edit" || method !== "POST") {
     return respond(404, { error: "not_found" });
   }
@@ -177,10 +266,10 @@ export const handler = async (event) => {
     return respond(403, { error: "forbidden_origin" });
   }
 
-  // Cognito JWT認証
+  // Zoho IDトークン検証
   const authHeader = headers["authorization"] || headers["Authorization"] || "";
-  const cognitoPayload = await verifyCognitoToken(authHeader);
-  if (!cognitoPayload) {
+  const zohoPayload = await verifyZohoToken(authHeader);
+  if (!zohoPayload) {
     return respond(401, { error: "unauthorized", hint: "ログインしてください。" });
   }
 

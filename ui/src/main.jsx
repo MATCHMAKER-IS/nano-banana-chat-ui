@@ -1,9 +1,9 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import App from "./App";
 import LoginPage from "./LoginPage";
-import { getSession, signOut } from "./auth";
+import { getSession, handleOAuthCallback, signOut } from "./auth";
 import "./styles.css";
 
 const theme = createTheme({
@@ -63,8 +63,37 @@ const theme = createTheme({
 
 function Root() {
   const [loggedIn, setLoggedIn] = useState(null);
+  const [oauthError, setOauthError] = useState(null);
 
   useEffect(() => {
+    // ZohoからのOAuthコールバック処理
+    if (window.location.pathname === "/oauth/callback") {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const error = params.get("error");
+
+      // URLからコードを消してトップに戻す
+      window.history.replaceState({}, "", "/");
+
+      if (error) {
+        setOauthError("Zoho認証がキャンセルされました。再度お試しください。");
+        setLoggedIn(false);
+        return;
+      }
+
+      if (code) {
+        // 認証コードは3分で期限切れのため即座に交換
+        handleOAuthCallback(code)
+          .then(() => setLoggedIn(true))
+          .catch(() => {
+            setOauthError("認証に失敗しました。再度ログインしてください。");
+            setLoggedIn(false);
+          });
+        return;
+      }
+    }
+
+    // 通常起動時：保存済みトークンでセッション確認
     getSession()
       .then(() => setLoggedIn(true))
       .catch(() => setLoggedIn(false));
@@ -78,7 +107,7 @@ function Root() {
       {loggedIn ? (
         <App onSignOut={() => { signOut(); setLoggedIn(false); }} />
       ) : (
-        <LoginPage onLogin={() => setLoggedIn(true)} />
+        <LoginPage onLogin={() => setLoggedIn(true)} oauthError={oauthError} />
       )}
     </ThemeProvider>
   );
