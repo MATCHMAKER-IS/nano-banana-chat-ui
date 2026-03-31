@@ -25,7 +25,7 @@ export async function handleOAuthCallback(code) {
   const res = await fetch(`${API_BASE_URL}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, redirect_uri: import.meta.env.VITE_REDIRECT_URI }),
   });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || "token_exchange_failed");

@@ -30,12 +30,12 @@ async function verifyZohoToken(authHeader) {
 }
 
 // OAuthコード → トークン交換
-async function exchangeCodeForTokens(code) {
+async function exchangeCodeForTokens(code, redirectUri) {
   const params = new URLSearchParams({
     grant_type: "authorization_code",
     client_id: process.env.ZOHO_CLIENT_ID,
     client_secret: process.env.ZOHO_CLIENT_SECRET,
-    redirect_uri: process.env.ZOHO_REDIRECT_URI,
+    redirect_uri: redirectUri || process.env.ZOHO_REDIRECT_URI,
     code,
   });
   const res = await fetch(`${ZOHO_BASE}/oauth/v2/token`, {
@@ -215,10 +215,10 @@ export const handler = async (event) => {
       return respond(400, { error: "invalid_json" });
     }
 
-    const { code } = body;
+    const { code, redirect_uri } = body;
     if (!code) return respond(400, { error: "code_required" });
 
-    const tokenData = await exchangeCodeForTokens(code);
+    const tokenData = await exchangeCodeForTokens(code, redirect_uri);
 
     if (tokenData.error) {
       return respond(400, { error: "zoho_token_error", detail: tokenData.error });
