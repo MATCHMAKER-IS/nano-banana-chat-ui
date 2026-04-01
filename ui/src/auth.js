@@ -43,13 +43,13 @@ function saveTokens({ id_token, access_token, refresh_token, expires_in }) {
   localStorage.setItem(KEYS.EXPIRES_AT, String(expiresAt));
 }
 
-// IDトークンを取得（期限切れなら自動更新）
+// アクセストークンを取得（期限切れなら自動更新）
 export async function getIdToken() {
   const expiresAt = Number(localStorage.getItem(KEYS.EXPIRES_AT) || 0);
 
   // まだ有効期限内ならそのまま返す
   if (Date.now() < expiresAt) {
-    return localStorage.getItem(KEYS.ID_TOKEN);
+    return localStorage.getItem(KEYS.ACCESS_TOKEN);
   }
 
   // 期限切れ → リフレッシュトークンで更新
@@ -72,7 +72,7 @@ export async function getIdToken() {
   }
 
   saveTokens(data);
-  return data.id_token;
+  return data.access_token;
 }
 
 // ログイン済みかチェック
@@ -85,4 +85,19 @@ export function getSession() {
 
 export function signOut() {
   Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
+}
+
+// IDトークンからユーザー情報を取得（署名検証なし・表示用のみ）
+export function getUserInfo() {
+  const idToken = localStorage.getItem(KEYS.ID_TOKEN);
+  if (!idToken) return null;
+  try {
+    const payload = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return {
+      email: payload.email || "",
+      name: payload.name || payload.given_name || payload.email || "",
+    };
+  } catch {
+    return null;
+  }
 }

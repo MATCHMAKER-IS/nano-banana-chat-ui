@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { getIdToken } from "./auth";
+import { getIdToken, getUserInfo } from "./auth";
 import {
   Alert,
   Box,
@@ -7,7 +7,9 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
@@ -26,6 +28,7 @@ import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 
 const PSEUDO_STEPS = ["画像を読み込み中", "編集内容を解析中", "編集リクエストを送信中", "画像を生成中", "最終調整中"];
 const PROXY_TOKEN_STORAGE_KEY = "nano_banana_proxy_token";
@@ -192,7 +195,12 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
         borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
-        backgroundColor: "#2a2a2a"
+        backgroundColor: "#2a2a2a",
+        animation: "imgReveal 0.4s ease-out",
+        "@keyframes imgReveal": {
+          from: { opacity: 0, transform: "scale(0.96)" },
+          to:   { opacity: 1, transform: "scale(1)" }
+        }
       }}
     />
   );
@@ -239,6 +247,34 @@ export default function App({ onSignOut }) {
 
   const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState([]);
+
+  // フィードバック
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
+
+  const sendFeedback = async () => {
+    if (!feedbackMessage.trim()) return;
+    setFeedbackSending(true);
+    try {
+      const userInfo = getUserInfo();
+      await fetch(`${apiBaseUrl}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: feedbackMessage, userEmail: userInfo?.email || "" }),
+      });
+      setFeedbackDone(true);
+      setFeedbackMessage("");
+      setTimeout(() => {
+        setFeedbackOpen(false);
+      }, 1500);
+    } catch {
+      // エラーは無視（送信失敗でもUIを止めない）
+    } finally {
+      setFeedbackSending(false);
+    }
+  };
   const [prompt, setPrompt] = useState("");
   const [latestGeneratedImage, setLatestGeneratedImage] = useState("");
   const [manualTargetImage, setManualTargetImage] = useState("");
@@ -249,6 +285,9 @@ export default function App({ onSignOut }) {
   const [modalImage, setModalImage] = useState("");
   const [compareModal, setCompareModal] = useState(null);
   const [sliderPos, setSliderPos] = useState(50);
+  const beforeImgRef = useRef(null);
+  const dividerRef = useRef(null);
+  const handleRef = useRef(null);
   const [compareAspect, setCompareAspect] = useState("16/9");
   const [targetNoticeOpen, setTargetNoticeOpen] = useState(false);
   const [sessionWidth, setSessionWidth] = useState(320);
@@ -291,6 +330,11 @@ export default function App({ onSignOut }) {
       // ignore storage errors
     }
   }, [modelInput]);
+
+  // メッセージ追加・更新時に自動スクロール
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "instant" });
+  }, [messages]);
 
   useEffect(() => {
     if (!loading) return undefined;
@@ -365,8 +409,16 @@ export default function App({ onSignOut }) {
 
   const openCompare = (before, after) => {
     setSliderPos(50);
-    setCompareAspect("4/3");
-    setCompareModal({ before, after });
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setCompareAspect(`${img.naturalWidth}/${img.naturalHeight}`);
+      } else {
+        setCompareAspect("4/3");
+      }
+      setCompareModal({ before, after });
+    };
+    img.src = after;
   };
 
   const onSliderPointerDown = (e) => {
@@ -380,7 +432,10 @@ export default function App({ onSignOut }) {
     const rect = sliderContainerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pos = Math.min(99, Math.max(1, ((e.clientX - rect.left) / rect.width) * 100));
-    setSliderPos(pos);
+    // DOM直接更新でReact再レンダリングを回避
+    if (beforeImgRef.current) beforeImgRef.current.style.clipPath = `inset(0 ${(100 - pos).toFixed(2)}% 0 0)`;
+    if (dividerRef.current) dividerRef.current.style.left = `${pos}%`;
+    if (handleRef.current) handleRef.current.style.left = `${pos}%`;
   };
 
   const onSliderContainerUp = () => {
@@ -550,7 +605,7 @@ export default function App({ onSignOut }) {
           )}
           <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
             <Typography variant="h4" sx={{ fontSize: { xs: 18, md: 20 }, fontWeight: 600, letterSpacing: "-0.01em", color: "text.primary" }}>
-              Nano Banana
+              Nano Banana WebUI
             </Typography>
           </Box>
 
@@ -559,7 +614,7 @@ export default function App({ onSignOut }) {
           {hasMessages ? (
             <Box sx={{ p: 2, overflow: "auto", display: "grid", gap: 1.5, alignContent: "start", flex: 1, minHeight: 0 }}>
               {messages.map((m) => (
-                <Box key={m.id} sx={{ display: "flex", flexDirection: "column", alignItems: m.role === "assistant" ? "flex-start" : "flex-end", gap: 0.75 }}>
+                <Box key={m.id} sx={{ display: "flex", flexDirection: "column", alignItems: m.role === "assistant" ? "flex-start" : "flex-end", gap: 0.75, animation: "msgIn 0.25s ease-out", "@keyframes msgIn": { from: { opacity: 0, transform: "translateY(8px)" }, to: { opacity: 1, transform: "translateY(0)" } } }}>
                   {(() => {
                     const hideUserPreview = m.role === "user" && m.attachmentName === "直前の生成画像";
                     const showMessageImage = Boolean(m.image) && !hideUserPreview;
@@ -589,7 +644,7 @@ export default function App({ onSignOut }) {
                               AI
                             </Typography>
                           )}
-                          {m.text ? (
+                          {m.text && !m.pending ? (
                             <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "0.9375rem" }}>
                               {m.text}
                             </Typography>
@@ -599,23 +654,25 @@ export default function App({ onSignOut }) {
                           {m.role === "assistant" && showMessageImage ? (
                             <Stack spacing={1} sx={{ mt: 1 }}>
                               <MessageImage src={m.image} alt="message" onClick={() => setModalImage(m.image)} />
-                              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                                {!m.pending && m.beforeImage && m.image ? (
-                                  <Button size="small" variant="text" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCompare(m.beforeImage, m.image)}>
-                                    比較
+                              {!m.pending && (
+                                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ animation: "fadeIn 0.3s ease-out 0.2s both", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+                                  {m.beforeImage && m.image ? (
+                                    <Button size="small" variant="text" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCompare(m.beforeImage, m.image)}>
+                                      比較
+                                    </Button>
+                                  ) : null}
+                                  <Button size="small" variant="text" startIcon={<DownloadRoundedIcon />} onClick={() => downloadDataUrl(m.image, "edited-image.png")}>
+                                    保存
                                   </Button>
-                                ) : null}
-                                <Button size="small" variant="text" startIcon={<DownloadRoundedIcon />} onClick={() => downloadDataUrl(m.image, "edited-image.png")}>
-                                  保存
-                                </Button>
-                              </Stack>
+                                </Stack>
+                              )}
                             </Stack>
                           ) : null}
 
                           {m.pending ? (
-                            <Typography variant="caption" sx={{ mt: 1, display: "inline-flex", alignItems: "center", color: "text.primary" }}>
-                              <Box component="span" className="thinking-text">生成中</Box>
-                            </Typography>
+                            <Box sx={{ mt: 0.5, animation: "fadeSlideIn 0.3s ease-out", "@keyframes fadeSlideIn": { from: { opacity: 0, transform: "translateY(6px)" }, to: { opacity: 1, transform: "translateY(0)" } } }}>
+                              <Box component="span" className="thinking-text" sx={{ fontSize: "0.9375rem", color: "text.primary" }}>生成中</Box>
+                            </Box>
                           ) : null}
                         </Paper>
                       )}
@@ -630,7 +687,7 @@ export default function App({ onSignOut }) {
           <Box sx={{ mt: "auto" }}>
             {null}
 
-            <Box component="form" ref={formRef} onSubmit={onSubmit} sx={{ px: 2, pb: 2, pt: 1 }}>
+            <Box component="form" ref={formRef} onSubmit={onSubmit} sx={{ px: 2, pb: 0.5, pt: 1 }}>
               <Paper
                 elevation={0}
                 sx={{
@@ -752,6 +809,20 @@ export default function App({ onSignOut }) {
                 </Stack>
               </Paper>
             </Box>
+
+            {/* ベータ版フッター */}
+            <Box sx={{ textAlign: "center", pt: 0.25, pb: 0.5 }}>
+              <Typography sx={{ fontSize: "0.72rem", color: "text.primary" }}>
+                このツールはベータ版です。改善要望は
+                <Box
+                  component="span"
+                  onClick={() => setFeedbackOpen(true)}
+                  sx={{ cursor: "pointer", textDecoration: "underline", "&:hover": { opacity: 0.7 } }}
+                >
+                  こちらから
+                </Box>
+              </Typography>
+            </Box>
           </Box>
 
         </Paper>
@@ -787,13 +858,20 @@ export default function App({ onSignOut }) {
               transition: "background 0.2s"
             }}
           />
-          <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.82rem", mb: 2, display: "block" }}>
-            Session
-          </Typography>
           <Stack spacing={2}>
-            <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.primary", pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              {sessionId}
-            </Typography>
+            <Stack spacing={0.5} sx={{ pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>
+                <Box component="span" sx={{ mr: 0.5 }}>Session：</Box>{sessionId}
+              </Typography>
+              {(() => {
+                const user = getUserInfo();
+                return user ? (
+                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>
+                    <Box component="span" sx={{ mr: 0.5 }}>ログインユーザー：</Box>{user.email}
+                  </Typography>
+                ) : null;
+              })()}
+            </Stack>
             <TextField
               size="small"
               label="Image Model"
@@ -858,34 +936,43 @@ export default function App({ onSignOut }) {
           sx={{
             position: "fixed", inset: 0, zIndex: 1300,
             background: "rgba(0,0,0,0.92)",
+            backdropFilter: "blur(8px)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "zoom-out"
+            cursor: "zoom-out",
+            animation: "fadeIn 0.2s ease-out",
+            "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } },
           }}
         >
-          <IconButton
-            onClick={(e) => { e.stopPropagation(); const a = document.createElement("a"); a.href = modalImage; a.download = "image.png"; a.click(); }}
-            sx={{ position: "fixed", top: 16, right: 112, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
+          {/* トップバー */}
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{ position: "fixed", top: 0, left: 0, right: 0, height: 56, display: "flex", alignItems: "center", justifyContent: "flex-end", px: 2, gap: 0.5 }}
           >
-            <DownloadRoundedIcon />
-          </IconButton>
-          <IconButton
-            onClick={async (e) => { e.stopPropagation(); try { const res = await fetch(modalImage); const blob = await res.blob(); await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]); } catch {} }}
-            sx={{ position: "fixed", top: 16, right: 64, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
-          >
-            <ContentCopyRoundedIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => setModalImage("")}
-            sx={{ position: "fixed", top: 16, right: 16, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
-          >
-            <CloseRoundedIcon />
-          </IconButton>
+            <IconButton
+              onClick={(e) => { e.stopPropagation(); const a = document.createElement("a"); a.href = modalImage; a.download = "image.png"; a.click(); }}
+              sx={{ color: "rgba(255,255,255,0.75)", "&:hover": { color: "#fff", background: "transparent" } }}
+            >
+              <DownloadRoundedIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              onClick={async (e) => { e.stopPropagation(); try { const res = await fetch(modalImage); const blob = await res.blob(); await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]); } catch {} }}
+              sx={{ color: "rgba(255,255,255,0.75)", "&:hover": { color: "#fff", background: "transparent" } }}
+            >
+              <ContentCopyRoundedIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              onClick={() => setModalImage("")}
+              sx={{ color: "rgba(255,255,255,0.75)", "&:hover": { color: "#fff", background: "transparent" } }}
+            >
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+          </Box>
           <Box
             component="img"
             src={modalImage}
             alt="zoom"
             onClick={(e) => e.stopPropagation()}
-            sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: "12px", cursor: "default" }}
+            sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: "12px", cursor: "default", animation: "popIn 0.2s ease-out", "@keyframes popIn": { from: { opacity: 0, transform: "scale(0.95)" }, to: { opacity: 1, transform: "scale(1)" } } }}
           />
         </Box>
       )}
@@ -893,18 +980,22 @@ export default function App({ onSignOut }) {
       {compareModal && (
         <Box
           onClick={() => setCompareModal(null)}
-          sx={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.95)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }}
+          sx={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          {/* 閉じるボタン */}
-          <IconButton
-            onClick={() => setCompareModal(null)}
-            sx={{ position: "fixed", top: 16, right: 16, color: "#fff", background: "rgba(255,255,255,0.1)", "&:hover": { background: "rgba(255,255,255,0.2)" } }}
+          {/* トップバー */}
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{ position: "fixed", top: 0, left: 0, right: 0, height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}
           >
-            <CloseRoundedIcon />
-          </IconButton>
-          {/* Before/After ラベル（右上） */}
-          <Box sx={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", color: "#fff", fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.08em", opacity: 0.7, pointerEvents: "none" }}>
-            Before / After
+            <Box sx={{ color: "#fff", fontSize: "0.78rem", fontWeight: 500, opacity: 0.7 }}>
+              Before / After
+            </Box>
+            <IconButton
+              onClick={() => setCompareModal(null)}
+              sx={{ color: "rgba(255,255,255,0.75)", "&:hover": { color: "#fff", background: "transparent" } }}
+            >
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
           </Box>
           <Box
             ref={sliderContainerRef}
@@ -939,6 +1030,7 @@ export default function App({ onSignOut }) {
             />
             {/* Before image with clip */}
             <Box
+              ref={beforeImgRef}
               component="img"
               src={compareModal.before}
               alt="before"
@@ -950,6 +1042,7 @@ export default function App({ onSignOut }) {
                 height: "100%",
                 objectFit: "contain",
                 clipPath: `inset(0 ${(100 - sliderPos).toFixed(2)}% 0 0)`,
+                willChange: "clip-path",
                 display: "block"
               }}
             />
@@ -962,9 +1055,10 @@ export default function App({ onSignOut }) {
               After
             </Box>
             {/* Divider line */}
-            <Box sx={{ position: "absolute", top: 0, bottom: 0, left: `${sliderPos}%`, width: "2px", background: "#fff", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 10, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
+            <Box ref={dividerRef} sx={{ position: "absolute", top: 0, bottom: 0, left: `${sliderPos}%`, width: "2px", background: "#fff", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 10, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
             {/* Drag handle */}
             <Box
+              ref={handleRef}
               onPointerDown={onSliderPointerDown}
               sx={{
                 position: "absolute",
@@ -1000,6 +1094,79 @@ export default function App({ onSignOut }) {
           編集対象を切り替えました
         </Alert>
       </Snackbar>
+
+
+      {/* フィードバックダイアログ */}
+      <Dialog
+        open={feedbackOpen}
+        onClose={() => { setFeedbackOpen(false); setFeedbackMessage(""); }}
+        TransitionProps={{ onExited: () => setFeedbackDone(false) }}
+        slotProps={{ backdrop: { sx: { backdropFilter: "blur(4px)", backgroundColor: "rgba(0,0,0,0.5)" } } }}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            bgcolor: "#171717",
+            borderRadius: 2.5,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontSize: "0.95rem", fontWeight: 600, pb: 1, color: "text.primary" }}>
+          改善要望・フィードバック
+        </DialogTitle>
+        <DialogContent>
+          {feedbackDone ? (
+            <Typography sx={{ color: "text.primary", py: 1, fontSize: "0.9rem" }}>
+              ご意見をいただきありがとうございます。
+            </Typography>
+          ) : (
+            <>
+            <TextField
+              autoFocus
+              multiline
+              minRows={4}
+              maxRows={8}
+              fullWidth
+              placeholder="不具合・改善要望などを入力してください（匿名で送信されます）"
+              value={feedbackMessage}
+              onChange={(e) => setFeedbackMessage(e.target.value)}
+              disabled={feedbackSending}
+              sx={{
+                mt: 0.5,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "10px",
+                  fontSize: "0.85rem",
+                  color: "#ececec",
+                },
+                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+              }}
+            />
+            </>
+          )}
+        </DialogContent>
+        {!feedbackDone && (
+          <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+            <Button
+              onClick={() => { setFeedbackOpen(false); setFeedbackMessage(""); }}
+              sx={{ color: "text.primary", "&:hover": { bgcolor: "rgba(255,255,255,0.06)" } }}
+              disabled={feedbackSending}
+            >
+              キャンセル
+            </Button>
+            <Button
+              variant="contained"
+              onClick={sendFeedback}
+              disabled={!feedbackMessage.trim() || feedbackSending}
+              sx={{ gap: 1 }}
+            >
+              {feedbackSending && <CircularProgress size={14} color="inherit" />}
+              {feedbackSending ? "送信中..." : "送信"}
+            </Button>
+          </DialogActions>
+        )}
+      </Dialog>
     </Box>
   );
 }

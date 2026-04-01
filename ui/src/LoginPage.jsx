@@ -1,8 +1,17 @@
-import React from "react";
-import { Box, Typography, Button, Alert } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Typography, Button, Alert, CircularProgress } from "@mui/material";
 import { startZohoLogin } from "./auth";
 
-export default function LoginPage({ oauthError }) {
+export default function LoginPage({ oauthError, processing }) {
+  const [clicking, setClicking] = useState(false);
+
+  const handleLogin = () => {
+    setClicking(true);
+    startZohoLogin();
+  };
+
+  const isLoading = clicking || processing;
+
   return (
     <Box sx={{
       minHeight: "100vh",
@@ -21,7 +30,7 @@ export default function LoginPage({ oauthError }) {
         gap: 3,
       }}>
         <Typography variant="h5" fontWeight={700} color="text.primary">
-          Nano Banana
+          Nano Banana WebUI
         </Typography>
 
         {oauthError && (
@@ -31,10 +40,12 @@ export default function LoginPage({ oauthError }) {
         <Button
           variant="contained"
           fullWidth
-          onClick={startZohoLogin}
-          sx={{ py: 1.4 }}
+          onClick={handleLogin}
+          disabled={isLoading}
+          sx={{ py: 1.4, gap: 1 }}
         >
-          Zohoアカウントでログイン
+          {isLoading && <CircularProgress size={16} color="inherit" />}
+          {isLoading ? "検証中..." : "Zohoアカウントでログイン"}
         </Button>
       </Box>
     </Box>

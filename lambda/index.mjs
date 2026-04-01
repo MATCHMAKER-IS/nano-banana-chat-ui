@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import nodemailer from "nodemailer";
 
 const DEFAULT_MODEL = "gemini-3.1-flash-image-preview";
 const GEMINI_TIMEOUT_MS = 270000; // 4分30秒（Lambdaの5分タイムアウトより少し短く）
@@ -6,24 +6,16 @@ const MAX_RETRY = 1;
 
 const ZOHO_BASE = "https://accounts.zoho.com";
 
-// ZohoのJWKS（公開鍵）をキャッシュ
-let _jwks = null;
-function getJwks() {
-  if (!_jwks) {
-    _jwks = createRemoteJWKSet(new URL(`${ZOHO_BASE}/oauth/v2/certs`));
-  }
-  return _jwks;
-}
-
+// アクセストークンをZohoのuserinfoエンドポイントで検証
 async function verifyZohoToken(authHeader) {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
   try {
-    const { payload } = await jwtVerify(token, getJwks(), {
-      issuer: ZOHO_BASE,
-      audience: process.env.ZOHO_CLIENT_ID,
+    const res = await fetch(`${ZOHO_BASE}/oauth/v2/userinfo`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    return payload;
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
     return null;
   }
@@ -70,9 +62,9 @@ function getAllowedOrigins() {
 }
 
 function isAllowedOrigin(origin) {
+  if (!origin) return true; // サーバー経由（プロキシ等）のリクエストは許可
   const allowed = getAllowedOrigins();
   if (allowed.length === 0) return true;
-  if (!origin) return false;
   if (allowed.includes("*")) return true;
   return allowed.includes(origin);
 }
@@ -255,6 +247,39 @@ export const handler = async (event) => {
       access_token: tokenData.access_token,
       expires_in: tokenData.expires_in,
     });
+  }
+
+  // ─── /feedback : フィードバックメール送信 ────────────────────────────
+  if (path === "/feedback" && method === "POST") {
+    let body;
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return respond(400, { error: "invalid_json" });
+    }
+
+    const { message, userEmail } = body;
+    if (!message?.trim()) return respond(400, { error: "message_required" });
+
+    const transporter = nodemailer.createTransport({
+      host: "smtp.zoho.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Nano Banana WebUI" <${process.env.SMTP_USER}>`,
+      to: process.env.FEEDBACK_TO,
+      subject: "【フィードバック】Nano Banana WebUI",
+      text: `送信者: ${userEmail || "不明"}\n\n${message}`,
+      html: `<p><strong>送信者:</strong> ${userEmail || "不明"}</p><hr><p>${message.replace(/\n/g, "<br>")}</p>`,
+    });
+
+    return respond(200, { ok: true });
   }
 
   // ─── /api/edit : 画像編集 ────────────────────────────────────────────

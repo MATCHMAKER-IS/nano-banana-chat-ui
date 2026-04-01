@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import { CssBaseline, Fade, ThemeProvider, createTheme } from "@mui/material";
 import App from "./App";
 import LoginPage from "./LoginPage";
 import { getSession, handleOAuthCallback, signOut } from "./auth";
@@ -57,13 +57,14 @@ const theme = createTheme({
           fontWeight: 600
         }
       }
-    }
+    },
   }
 });
 
 function Root() {
   const [loggedIn, setLoggedIn] = useState(null);
   const [oauthError, setOauthError] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     // ZohoからのOAuthコールバック処理
@@ -83,12 +84,14 @@ function Root() {
 
       if (code) {
         // 認証コードは3分で期限切れのため即座に交換
+        setProcessing(true);
         handleOAuthCallback(code)
           .then(() => setLoggedIn(true))
           .catch(() => {
             setOauthError("認証に失敗しました。再度ログインしてください。");
             setLoggedIn(false);
-          });
+          })
+          .finally(() => setProcessing(false));
         return;
       }
     }
@@ -104,11 +107,16 @@ function Root() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {loggedIn ? (
-        <App onSignOut={() => { signOut(); setLoggedIn(false); }} />
-      ) : (
-        <LoginPage onLogin={() => setLoggedIn(true)} oauthError={oauthError} />
-      )}
+      <Fade in={loggedIn} timeout={400} unmountOnExit>
+        <div style={{ height: "100%" }}>
+          <App onSignOut={() => { signOut(); setLoggedIn(false); }} />
+        </div>
+      </Fade>
+      <Fade in={!loggedIn} timeout={400} unmountOnExit>
+        <div>
+          <LoginPage onLogin={() => setLoggedIn(true)} oauthError={oauthError} processing={processing} />
+        </div>
+      </Fade>
     </ThemeProvider>
   );
 }
