@@ -526,9 +526,9 @@ export default function App({ onSignOut }) {
   };
 
   const onPromptKeyDown = (event) => {
+    // Enterキーでの送信を無効化（送信ボタンのみ）
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      formRef.current?.requestSubmit();
     }
   };
 
