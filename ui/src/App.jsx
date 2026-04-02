@@ -896,8 +896,8 @@ export default function App({ onSignOut }) {
               label="System Prompt"
               placeholder="AIへの基本指示を入力（省略可）"
               multiline
-              minRows={3}
-              maxRows={8}
+              minRows={5}
+              maxRows={20}
               value={systemPromptInput}
               onChange={(e) => setSystemPromptInput(e.target.value)}
               sx={{
