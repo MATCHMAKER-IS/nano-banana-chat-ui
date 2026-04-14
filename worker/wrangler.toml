@@ -1,7 +1,0 @@
-﻿name = "nano-banana-worker"
-main = "src/index.ts"
-compatibility_date = "2026-03-05"
-
-[vars]
-CORS_ALLOW_ORIGIN = "*"
-ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
