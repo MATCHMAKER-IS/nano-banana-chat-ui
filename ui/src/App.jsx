@@ -197,7 +197,7 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
         borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
-        backgroundColor: "#2a2a2a",
+        backgroundColor: "#f2e7d9",
         animation: "imgReveal 0.4s ease-out",
         "@keyframes imgReveal": {
           from: { opacity: 0, transform: "scale(0.96)" },
@@ -591,56 +591,120 @@ export default function App({ onSignOut }) {
               position: "absolute",
               inset: 0,
               zIndex: 200,
-              background: "rgba(255,255,255,0.04)",
-              border: "2px dashed rgba(255,255,255,0.3)",
-              borderRadius: "12px",
+              background: "rgba(255, 233, 214, 0.55)",
+              border: "2px dashed rgba(222, 147, 106, 0.7)",
+              borderRadius: "24px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               pointerEvents: "none",
               backdropFilter: "blur(2px)"
             }}>
-              <Typography sx={{ color: "text.primary", fontSize: "1.1rem", fontWeight: 600, opacity: 0.85 }}>
+              <Typography sx={{ color: "text.primary", fontSize: "1.1rem", fontWeight: 700, opacity: 0.95 }}>
                 画像をドロップして追加
               </Typography>
             </Box>
           )}
-          <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
-            <Typography variant="h4" sx={{ fontSize: { xs: 18, md: 20 }, fontWeight: 600, letterSpacing: "-0.01em", color: "text.primary" }}>
-              Nano Banana WebUI
+          <Box sx={{ px: 3, pt: 3, pb: 1.5 }}>
+            <Typography variant="h4" sx={{ fontSize: { xs: 22, md: 27 }, fontWeight: 800, letterSpacing: "-0.01em", color: "text.primary" }}>
+              バナナ写真スタジオ
+            </Typography>
+            <Typography sx={{ mt: 0.4, color: "text.secondary", fontSize: "0.86rem" }}>
+              画像を入れて、文章でお願いするだけ。やさしい写真編集ツールです。
             </Typography>
           </Box>
 
           {!hasMessages && (
             <Box sx={{
               flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              px: 4, pb: 4,
+              px: 3, pb: 3,
               animation: "fadeIn 0.4s ease-out", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } }
             }}>
-              <Box sx={{ width: "100%", maxWidth: 560 }}>
-                <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: "text.primary", mb: 2 }}>
-                  使い方
-                </Typography>
-                <Stack spacing={1.25}>
-                  {[
-                    "左下のボタンをクリック、または画像をこの画面にドラッグ＆ドロップして写真を追加",
-                    "テキスト欄に編集したい内容を入力（例：背景を青空にしてください）",
-                    "右端の送信ボタンを押すと、AIが写真を編集します"
-                  ].map((text, i) => (
-                    <Box key={i} sx={{ display: "flex", gap: 1.5, alignItems: "baseline" }}>
-                      <Typography sx={{ fontSize: "0.7rem", fontWeight: 500, color: "rgba(255,255,255,0.6)", flexShrink: 0, fontVariantNumeric: "tabular-nums", letterSpacing: "0.05em" }}>
-                        {String(i + 1).padStart(2, "0")}
-                      </Typography>
-                      <Typography sx={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.75)", lineHeight: 1.7, whiteSpace: "nowrap" }}>
-                        {text}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-                <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.55)", mt: 2.5 }}>
-                  右側の「固定指示」に毎回共通の指示を設定しておくと便利です
-                </Typography>
-              </Box>
+              <Card
+                elevation={0}
+                sx={{
+                  width: "100%",
+                  maxWidth: 840,
+                  borderRadius: "26px",
+                  border: "1px solid rgba(172,126,100,0.22)",
+                  background: "linear-gradient(180deg, rgba(255,252,246,0.95), rgba(255,246,233,0.95))",
+                  boxShadow: "0 12px 24px rgba(139,102,73,0.14)"
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                  <Typography sx={{ fontSize: "1rem", fontWeight: 800, color: "text.primary", mb: 2 }}>
+                    3ステップで編集
+                  </Typography>
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
+                    {[
+                      { no: 1, title: "写真を入れる", detail: "ドラッグ&ドロップ、またはアップロード" },
+                      { no: 2, title: "変えたいことを書く", detail: "例: 背景を青空にしてください" },
+                      { no: 3, title: "完成を見る", detail: "保存や比較もワンクリック" }
+                    ].map((step) => (
+                      <Box
+                        key={step.no}
+                        sx={{
+                          flex: 1,
+                          p: 1.4,
+                          borderRadius: "16px",
+                          background: "#fffaf3",
+                          border: "1px solid rgba(210,164,136,0.4)"
+                        }}
+                      >
+                        <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", mb: 0.3 }}>STEP {step.no}</Typography>
+                        <Typography sx={{ fontSize: "0.93rem", fontWeight: 700, color: "text.primary", mb: 0.25 }}>{step.title}</Typography>
+                        <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.55 }}>{step.detail}</Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                  <Box
+                    sx={{
+                      mt: 2.1,
+                      p: { xs: 2, md: 2.4 },
+                      borderRadius: "20px",
+                      border: "2px dashed rgba(224,145,102,0.7)",
+                      background: "rgba(255, 236, 221, 0.5)",
+                      display: "grid",
+                      placeItems: "center",
+                      gap: 1.3
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "0.94rem", color: "text.primary", fontWeight: 700 }}>
+                      ここに写真をドラッグ
+                    </Typography>
+                    <Button
+                      component="label"
+                      variant="contained"
+                      sx={{
+                        px: 5,
+                        py: 1.1,
+                        borderRadius: "999px",
+                        fontSize: "1.02rem",
+                        boxShadow: "none",
+                        "&:hover": { boxShadow: "none", backgroundColor: "primary.dark" }
+                      }}
+                    >
+                      写真をアップロード
+                      <input type="file" accept="image/*" hidden onChange={onAttach} />
+                    </Button>
+                  </Box>
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.6 }}>
+                    {["背景を明るくする", "不要な人を消す", "料理をもっと美味しそうに"].map((sample) => (
+                      <Chip
+                        key={sample}
+                        label={sample}
+                        onClick={() => setPrompt((prev) => (prev ? `${prev} ${sample}` : sample))}
+                        sx={{
+                          background: "#ffe4d4",
+                          color: "#875744",
+                          border: "1px solid rgba(216, 136, 98, 0.34)",
+                          "&:hover": { background: "#ffd7bf" }
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
             </Box>
           )}
 
@@ -668,13 +732,13 @@ export default function App({ onSignOut }) {
                             maxWidth: m.role === "assistant" ? "min(760px, 100%)" : "min(400px, 90%)",
                             p: m.role === "assistant" ? "10px 4px" : "10px 16px",
                             borderRadius: m.role === "assistant" ? 0 : "18px",
-                            border: "none",
-                            background: m.role === "assistant" ? "transparent" : "#2f2f2f"
+                            border: m.role === "assistant" ? "none" : "1px solid rgba(217, 149, 109, 0.28)",
+                            background: m.role === "assistant" ? "transparent" : "#ffe7d6"
                           }}
                         >
                           {m.role === "assistant" && (
-                            <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", mb: 0.75 }}>
-                              AI
+                            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.08em", display: "block", mb: 0.75 }}>
+                              AIアシスタント
                             </Typography>
                           )}
                           {m.text && !m.pending ? (
@@ -699,7 +763,7 @@ export default function App({ onSignOut }) {
                                       保存
                                     </Button>
                                   </Stack>
-                                  <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.55)", pl: 0.5 }}>
+                                  <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", pl: 0.5 }}>
                                     続けて指示を入力すると、この画像をさらに編集できます
                                   </Typography>
                                 </Stack>
@@ -729,10 +793,11 @@ export default function App({ onSignOut }) {
               <Paper
                 elevation={0}
                 sx={{
-                  p: 1,
-                  borderRadius: "16px",
-                  border: "none",
-                  backgroundColor: "#2f2f2f"
+                  p: 1.2,
+                  borderRadius: "20px",
+                  border: "1px solid rgba(180,131,102,0.28)",
+                  backgroundColor: "#fff7ee",
+                  boxShadow: "0 8px 18px rgba(121, 90, 68, 0.1)"
                 }}
               >
                 {pendingAttachment ? (
@@ -744,8 +809,8 @@ export default function App({ onSignOut }) {
                       gap: 1,
                       alignItems: "center",
                       borderRadius: 2,
-                      border: "none",
-                      backgroundColor: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(194, 140, 108, 0.24)",
+                      backgroundColor: "#fff1e5",
                       width: "fit-content"
                     }}
                   >
@@ -787,9 +852,11 @@ export default function App({ onSignOut }) {
                       sx={{
                         width: 38,
                         height: 38,
-                        borderRadius: 2,
-                        border: "none",
-                        color: "text.primary"
+                        borderRadius: "12px",
+                        border: "1px solid rgba(194, 140, 108, 0.28)",
+                        color: "text.primary",
+                        background: "#ffe9d9",
+                        "&:hover": { background: "#ffddc6" }
                       }}
                     >
                       <AddPhotoAlternateRoundedIcon fontSize="small" />
@@ -813,7 +880,7 @@ export default function App({ onSignOut }) {
                         px: 1,
                         py: 0.75,
                         borderRadius: 2,
-                        backgroundColor: "transparent"
+                        backgroundColor: "#fffdf9"
                       }
                     }}
                   />
@@ -827,16 +894,16 @@ export default function App({ onSignOut }) {
                         sx={{
                           width: 40,
                           height: 40,
-                          borderRadius: 2,
-                          backgroundColor: "transparent",
-                          color: "text.primary",
+                          borderRadius: "12px",
+                          backgroundColor: "primary.main",
+                          color: "primary.contrastText",
                           "&:hover": {
-                            backgroundColor: "rgba(255,255,255,0.06)",
-                            color: "text.primary"
+                            backgroundColor: "primary.dark",
+                            color: "primary.contrastText"
                           },
                           "&.Mui-disabled": {
-                            backgroundColor: "transparent",
-                            color: "action.disabled"
+                            backgroundColor: "rgba(180, 168, 157, 0.5)",
+                            color: "rgba(255,255,255,0.8)"
                           }
                         }}
                       >
@@ -850,7 +917,7 @@ export default function App({ onSignOut }) {
 
             {/* ベータ版フッター */}
             <Box sx={{ textAlign: "center", pt: 0.25, pb: 0.5 }}>
-              <Typography sx={{ fontSize: "0.72rem", color: "text.primary" }}>
+              <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
                 このツールはベータ版です。改善要望は
                 <Box
                   component="span"
@@ -870,7 +937,9 @@ export default function App({ onSignOut }) {
           sx={{
             width: { xs: "100%", lg: sessionWidth },
             flexShrink: 0,
-            background: "#171717",
+            background: "linear-gradient(180deg, #fffaf2 0%, #fff1e2 100%)",
+            border: "1px solid rgba(173, 132, 108, 0.2)",
+            boxShadow: "0 12px 24px rgba(131, 90, 68, 0.1)",
             display: "flex",
             flexDirection: "column",
             position: { xs: "static", lg: "sticky" },
@@ -892,13 +961,13 @@ export default function App({ onSignOut }) {
               width: "4px",
               cursor: "col-resize",
               zIndex: 10,
-              "&:hover": { background: "rgba(255,255,255,0.15)" },
+              "&:hover": { background: "rgba(165, 116, 84, 0.18)" },
               transition: "background 0.2s"
             }}
           />
           <Stack spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
             {/* マニュアルリンク */}
-            <Stack spacing={0.25} sx={{ pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <Stack spacing={0.25} sx={{ pb: 1.5, borderBottom: "1px solid rgba(171, 130, 102, 0.2)" }}>
               <Box
                 component="a"
                 href="https://connect.zoho.com/portal/ecl/manual/fromit/article/nano-banana-webui"
@@ -906,9 +975,9 @@ export default function App({ onSignOut }) {
                 rel="noopener noreferrer"
                 sx={{
                   display: "flex", alignItems: "center", gap: 0.75,
-                  px: 0.5, py: 0.75, borderRadius: "8px",
-                  color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.8rem",
-                  "&:hover": { color: "#fff", background: "rgba(255,255,255,0.05)" },
+                  px: 0.9, py: 0.75, borderRadius: "12px",
+                  color: "text.primary", textDecoration: "none", fontSize: "0.82rem",
+                  "&:hover": { color: "text.primary", background: "rgba(255, 226, 202, 0.65)" },
                   transition: "color 0.15s, background 0.15s"
                 }}
               >
@@ -922,9 +991,9 @@ export default function App({ onSignOut }) {
                 rel="noopener noreferrer"
                 sx={{
                   display: "flex", alignItems: "center", gap: 0.75,
-                  px: 0.5, py: 0.75, borderRadius: "8px",
-                  color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.8rem",
-                  "&:hover": { color: "#fff", background: "rgba(255,255,255,0.05)" },
+                  px: 0.9, py: 0.75, borderRadius: "12px",
+                  color: "text.primary", textDecoration: "none", fontSize: "0.82rem",
+                  "&:hover": { color: "text.primary", background: "rgba(255, 226, 202, 0.65)" },
                   transition: "color 0.15s, background 0.15s"
                 }}
               >
@@ -941,10 +1010,10 @@ export default function App({ onSignOut }) {
               helperText="通常はNano Bananaを選択してください"
               sx={{
                 "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
+                "& .MuiInputBase-root": { background: "#fff8ef" },
                 "& .MuiInputLabel-root": { color: "text.primary" },
-                "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.55)", fontSize: "0.7rem", mx: 0 }
+                "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.7rem", mx: 0 }
               }}
             >
               {MODEL_OPTIONS.map((option) => (
@@ -965,11 +1034,11 @@ export default function App({ onSignOut }) {
               helperText="毎回の編集に共通して適用されます"
               sx={{
                 "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
+                "& .MuiInputBase-root": { background: "#fff8ef" },
                 "& .MuiInputLabel-root": { color: "text.primary" },
                 "& .MuiInputBase-input::placeholder": { opacity: 0.5 },
-                "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.55)", fontSize: "0.7rem", mx: 0 }
+                "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.7rem", mx: 0 }
               }}
             />
             <Stack spacing={0.5}>
@@ -977,7 +1046,7 @@ export default function App({ onSignOut }) {
                 variant="text"
                 size="small"
                 onClick={resetSession}
-                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255, 226, 202, 0.65)" } }}
               >
                 会話をリセット（新しい編集を始める）
               </Button>
@@ -985,21 +1054,21 @@ export default function App({ onSignOut }) {
                 variant="text"
                 size="small"
                 onClick={onSignOut}
-                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
+                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255, 226, 202, 0.65)" } }}
               >
                 ログアウト
               </Button>
             </Stack>
 
             {/* セッション情報（下部） */}
-            <Box sx={{ mt: "auto", pt: 2, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", lineHeight: 1.6 }}>
+            <Box sx={{ mt: "auto", pt: 2, borderTop: "1px solid rgba(171, 130, 102, 0.2)" }}>
+              <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(133, 105, 90, 0.7)", lineHeight: 1.6 }}>
                 <Box component="span" sx={{ mr: 0.5 }}>セッションID：</Box>{sessionId}
               </Typography>
               {(() => {
                 const user = getUserInfo();
                 return user ? (
-                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", lineHeight: 1.6 }}>
+                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(133, 105, 90, 0.7)", lineHeight: 1.6 }}>
                     <Box component="span" sx={{ mr: 0.5 }}>ログイン中：</Box>{user.email}
                   </Typography>
                 ) : null;
@@ -1181,14 +1250,14 @@ export default function App({ onSignOut }) {
         open={feedbackOpen}
         onClose={() => { setFeedbackOpen(false); setFeedbackMessage(""); }}
         TransitionProps={{ onExited: () => setFeedbackDone(false) }}
-        slotProps={{ backdrop: { sx: { backdropFilter: "blur(4px)", backgroundColor: "rgba(0,0,0,0.5)" } } }}
+        slotProps={{ backdrop: { sx: { backdropFilter: "blur(4px)", backgroundColor: "rgba(121, 89, 69, 0.3)" } } }}
         fullWidth
         maxWidth="sm"
         PaperProps={{
           sx: {
-            bgcolor: "#171717",
+            bgcolor: "#fff8f0",
             borderRadius: 2.5,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+            boxShadow: "0 8px 32px rgba(120, 84, 63, 0.22)",
           }
         }}
       >
@@ -1217,10 +1286,10 @@ export default function App({ onSignOut }) {
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "10px",
                   fontSize: "0.85rem",
-                  color: "#ececec",
+                  color: "text.primary",
                 },
-                "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176, 132, 105, 0.35)" },
+                "& .MuiInputBase-root": { background: "#fffdf8" },
               }}
             />
             </>
@@ -1230,7 +1299,7 @@ export default function App({ onSignOut }) {
           <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
             <Button
               onClick={() => { setFeedbackOpen(false); setFeedbackMessage(""); }}
-              sx={{ color: "text.primary", "&:hover": { bgcolor: "rgba(255,255,255,0.06)" } }}
+              sx={{ color: "text.primary", "&:hover": { bgcolor: "rgba(255, 226, 202, 0.65)" } }}
               disabled={feedbackSending}
             >
               キャンセル

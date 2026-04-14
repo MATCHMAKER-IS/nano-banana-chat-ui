@@ -8,37 +8,52 @@ import "./styles.css";
 
 const theme = createTheme({
   palette: {
-    mode: "dark",
+    mode: "light",
     primary: {
-      main: "#ffffff",
-      dark: "#d9d9d9",
-      light: "#ffffff",
-      contrastText: "#111111"
+      main: "#f4a079",
+      dark: "#df875f",
+      light: "#f9c1a5",
+      contrastText: "#fffdfa"
+    },
+    secondary: {
+      main: "#9fc2dc",
+      contrastText: "#2f3a45"
     },
     background: {
-      default: "#212121",
-      paper: "#2f2f2f"
+      default: "#f7f0e4",
+      paper: "#fffaf2"
     },
     text: {
-      primary: "#ececec",
-      secondary: "#8e8ea0"
+      primary: "#4a2f24",
+      secondary: "#85695b"
     },
-    divider: "rgba(255, 255, 255, 0.08)"
+    divider: "rgba(134, 96, 77, 0.2)"
   },
   shape: {
-    borderRadius: 12
+    borderRadius: 18
   },
   typography: {
-    fontFamily: 'system-ui, "Segoe UI Variable", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif'
+    fontFamily: '"M PLUS Rounded 1c", "Noto Sans JP", sans-serif',
+    button: {
+      fontWeight: 700
+    }
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundImage:
+            "radial-gradient(140% 120% at 10% 8%, #fff8ef 0%, #f7efe1 50%, #f1e6d5 100%)",
+          color: "#4a2f24"
+        }
+      }
+    },
     MuiPaper: {
       styleOverrides: {
         root: {
-          backdropFilter: "blur(8px)",
-          border: "none",
+          border: "1px solid rgba(173, 132, 108, 0.16)",
           backgroundImage: "none",
-          boxShadow: "none"
+          boxShadow: "0 12px 34px rgba(131, 90, 68, 0.12)"
         }
       }
     },
@@ -46,18 +61,25 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: "none",
-          fontWeight: 600,
-          borderRadius: 10
+          borderRadius: 999,
+          letterSpacing: "0.01em"
         }
       }
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          fontWeight: 600
+          fontWeight: 700
         }
       }
     },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 14
+        }
+      }
+    }
   }
 });
 

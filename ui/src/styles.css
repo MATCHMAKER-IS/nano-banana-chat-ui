@@ -1,5 +1,9 @@
 ﻿:root {
-  color-scheme: dark;
+  color-scheme: light;
+  --bg-warm: #f7f0e4;
+  --bg-cream: #fffaf2;
+  --line-soft: rgba(167, 126, 101, 0.25);
+  --shadow-soft: 0 10px 26px rgba(131, 90, 68, 0.12);
 }
 
 * {
@@ -9,17 +13,30 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #212121;
-  font-family: system-ui, "Segoe UI Variable", "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  color: #4a2f24;
+  background: radial-gradient(130% 110% at 10% 5%, #fff8ef 0%, #f8f0e4 56%, #f3e8d8 100%);
+  font-family: "M PLUS Rounded 1c", "Noto Sans JP", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* スクロールバー */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(176, 132, 105, 0.4);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(176, 132, 105, 0.7);
+}
 
 #root {
   min-height: 100vh;
@@ -27,25 +44,30 @@ body {
 
 .app-shell {
   min-height: 100vh;
-  padding: 0;
+  padding: 16px;
   position: relative;
   overflow: visible;
 }
 
 .chat-panel {
-  min-height: calc(100vh - 24px);
+  min-height: calc(100vh - 32px);
+  border-radius: 24px;
+  background: linear-gradient(160deg, #fffaf2 0%, #fff6ea 100%);
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
 }
 
 .side-panel {
-  min-height: calc(100vh - 24px);
+  min-height: calc(100vh - 32px);
+  border-radius: 24px;
 }
 
 .compare-viewport {
   width: 100%;
   overflow: auto;
-  border-radius: 10px;
-  border: none;
-  background: rgba(36, 36, 36, 0.9);
+  border-radius: 16px;
+  border: 1px solid var(--line-soft);
+  background: #efe8dc;
   padding: 8px;
   cursor: grab;
 }
@@ -61,7 +83,7 @@ body {
 @keyframes thinking-fade {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.5;
   }
   50% {
     opacity: 1;
@@ -69,11 +91,16 @@ body {
 }
 
 @media (max-width: 1200px) {
+  .app-shell {
+    padding: 10px;
+  }
+
   .chat-panel {
-    min-height: 74vh;
+    min-height: 70vh;
   }
 
   .side-panel {
     min-height: auto;
+    margin-top: 10px;
   }
 }
