@@ -21,7 +21,7 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
-import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
+import AddPhotoAlternateRoundedIcon from "@mui/icons-material/AddPhotoAlternateRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
@@ -29,6 +29,8 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 
 const PSEUDO_STEPS = ["画像を読み込み中", "編集内容を解析中", "編集リクエストを送信中", "画像を生成中", "最終調整中"];
 const PROXY_TOKEN_STORAGE_KEY = "nano_banana_proxy_token";
@@ -609,7 +611,38 @@ export default function App({ onSignOut }) {
             </Typography>
           </Box>
 
-          {null}
+          {!hasMessages && (
+            <Box sx={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              px: 4, pb: 4,
+              animation: "fadeIn 0.4s ease-out", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } }
+            }}>
+              <Box sx={{ width: "100%", maxWidth: 560 }}>
+                <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: "text.primary", mb: 2 }}>
+                  使い方
+                </Typography>
+                <Stack spacing={1.25}>
+                  {[
+                    "左下のボタンをクリック、または画像をこの画面にドラッグ＆ドロップして写真を追加",
+                    "テキスト欄に編集したい内容を入力（例：背景を青空にしてください）",
+                    "右端の送信ボタンを押すと、AIが写真を編集します"
+                  ].map((text, i) => (
+                    <Box key={i} sx={{ display: "flex", gap: 1.5, alignItems: "baseline" }}>
+                      <Typography sx={{ fontSize: "0.7rem", fontWeight: 500, color: "rgba(255,255,255,0.6)", flexShrink: 0, fontVariantNumeric: "tabular-nums", letterSpacing: "0.05em" }}>
+                        {String(i + 1).padStart(2, "0")}
+                      </Typography>
+                      <Typography sx={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.75)", lineHeight: 1.7, whiteSpace: "nowrap" }}>
+                        {text}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+                <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.55)", mt: 2.5 }}>
+                  右側の「固定指示」に毎回共通の指示を設定しておくと便利です
+                </Typography>
+              </Box>
+            </Box>
+          )}
 
           {hasMessages ? (
             <Box sx={{ p: 2, overflow: "auto", display: "grid", gap: 1.5, alignContent: "start", flex: 1, minHeight: 0 }}>
@@ -655,15 +688,20 @@ export default function App({ onSignOut }) {
                             <Stack spacing={1} sx={{ mt: 1 }}>
                               <MessageImage src={m.image} alt="message" onClick={() => setModalImage(m.image)} />
                               {!m.pending && (
-                                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ animation: "fadeIn 0.3s ease-out 0.2s both", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } } }}>
-                                  {m.beforeImage && m.image ? (
-                                    <Button size="small" variant="text" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCompare(m.beforeImage, m.image)}>
-                                      比較
+                                <Stack spacing={0.75} sx={{ animation: "fadeIn 0.3s ease-out 0.2s both", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+                                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                                    {m.beforeImage && m.image ? (
+                                      <Button size="small" variant="text" startIcon={<CompareArrowsRoundedIcon />} onClick={() => openCompare(m.beforeImage, m.image)}>
+                                        編集前後を比較
+                                      </Button>
+                                    ) : null}
+                                    <Button size="small" variant="text" startIcon={<DownloadRoundedIcon />} onClick={() => downloadDataUrl(m.image, "edited-image.png")}>
+                                      保存
                                     </Button>
-                                  ) : null}
-                                  <Button size="small" variant="text" startIcon={<DownloadRoundedIcon />} onClick={() => downloadDataUrl(m.image, "edited-image.png")}>
-                                    保存
-                                  </Button>
+                                  </Stack>
+                                  <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.55)", pl: 0.5 }}>
+                                    続けて指示を入力すると、この画像をさらに編集できます
+                                  </Typography>
                                 </Stack>
                               )}
                             </Stack>
@@ -743,7 +781,7 @@ export default function App({ onSignOut }) {
                 ) : null}
 
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Tooltip title="画像を添付">
+                  <Tooltip title="画像を添付（クリックまたはドラッグ）">
                     <IconButton
                       component="label"
                       sx={{
@@ -754,7 +792,7 @@ export default function App({ onSignOut }) {
                         color: "text.primary"
                       }}
                     >
-                      <AttachFileRoundedIcon fontSize="small" />
+                      <AddPhotoAlternateRoundedIcon fontSize="small" />
                       <input type="file" accept="image/*" hidden onChange={onAttach} />
                     </IconButton>
                   </Tooltip>
@@ -768,7 +806,7 @@ export default function App({ onSignOut }) {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={onPromptKeyDown}
-                    placeholder="編集指示を入力"
+                    placeholder="画像を添付またはドラッグしてから編集指示を入力（例：背景を青空にしてください）"
                     InputProps={{ disableUnderline: true }}
                     sx={{
                       "& .MuiInputBase-root": {
@@ -858,31 +896,55 @@ export default function App({ onSignOut }) {
               transition: "background 0.2s"
             }}
           />
-          <Stack spacing={2}>
-            <Stack spacing={0.5} sx={{ pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>
-                <Box component="span" sx={{ mr: 0.5 }}>Session：</Box>{sessionId}
-              </Typography>
-              {(() => {
-                const user = getUserInfo();
-                return user ? (
-                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>
-                    <Box component="span" sx={{ mr: 0.5 }}>ログインユーザー：</Box>{user.email}
-                  </Typography>
-                ) : null;
-              })()}
+          <Stack spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
+            {/* マニュアルリンク */}
+            <Stack spacing={0.25} sx={{ pb: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <Box
+                component="a"
+                href="https://connect.zoho.com/portal/ecl/manual/fromit/article/nano-banana-webui"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: "flex", alignItems: "center", gap: 0.75,
+                  px: 0.5, py: 0.75, borderRadius: "8px",
+                  color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.8rem",
+                  "&:hover": { color: "#fff", background: "rgba(255,255,255,0.05)" },
+                  transition: "color 0.15s, background 0.15s"
+                }}
+              >
+                <MenuBookRoundedIcon sx={{ fontSize: "1rem" }} />
+                操作マニュアル
+              </Box>
+              <Box
+                component="a"
+                href="https://connect.zoho.com/portal/ecl/manual/ladyinterview/article/kakourule"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  display: "flex", alignItems: "center", gap: 0.75,
+                  px: 0.5, py: 0.75, borderRadius: "8px",
+                  color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.8rem",
+                  "&:hover": { color: "#fff", background: "rgba(255,255,255,0.05)" },
+                  transition: "color 0.15s, background 0.15s"
+                }}
+              >
+                <MenuBookRoundedIcon sx={{ fontSize: "1rem" }} />
+                写真加工のルール
+              </Box>
             </Stack>
             <TextField
               size="small"
-              label="Image Model"
+              label="AIモデル"
               select
               value={modelInput}
               onChange={(e) => setModelInput(e.target.value)}
+              helperText="通常はNano Bananaを選択してください"
               sx={{
                 "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
                 "& .MuiOutlinedInput-notchedOutline": { border: "none" },
                 "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
-                "& .MuiInputLabel-root": { color: "text.primary" }
+                "& .MuiInputLabel-root": { color: "text.primary" },
+                "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.55)", fontSize: "0.7rem", mx: 0 }
               }}
             >
               {MODEL_OPTIONS.map((option) => (
@@ -893,18 +955,21 @@ export default function App({ onSignOut }) {
             </TextField>
             <TextField
               size="small"
-              label="System Prompt"
-              placeholder="AIへの基本指示を入力（省略可）"
+              label="固定指示（システムプロンプト）"
+              placeholder={"毎回同じ指示を入力する場合はここに記載\n（例：被写体には一切の変更を加えないこと）"}
               multiline
               minRows={5}
               maxRows={20}
               value={systemPromptInput}
               onChange={(e) => setSystemPromptInput(e.target.value)}
+              helperText="毎回の編集に共通して適用されます"
               sx={{
                 "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
                 "& .MuiOutlinedInput-notchedOutline": { border: "none" },
                 "& .MuiInputBase-root": { background: "rgba(255,255,255,0.06)" },
-                "& .MuiInputLabel-root": { color: "text.primary" }
+                "& .MuiInputLabel-root": { color: "text.primary" },
+                "& .MuiInputBase-input::placeholder": { opacity: 0.5 },
+                "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.55)", fontSize: "0.7rem", mx: 0 }
               }}
             />
             <Stack spacing={0.5}>
@@ -914,7 +979,7 @@ export default function App({ onSignOut }) {
                 onClick={resetSession}
                 sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255,255,255,0.05)" } }}
               >
-                新規セッション
+                会話をリセット（新しい編集を始める）
               </Button>
               <Button
                 variant="text"
@@ -925,6 +990,21 @@ export default function App({ onSignOut }) {
                 ログアウト
               </Button>
             </Stack>
+
+            {/* セッション情報（下部） */}
+            <Box sx={{ mt: "auto", pt: 2, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", lineHeight: 1.6 }}>
+                <Box component="span" sx={{ mr: 0.5 }}>セッションID：</Box>{sessionId}
+              </Typography>
+              {(() => {
+                const user = getUserInfo();
+                return user ? (
+                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", lineHeight: 1.6 }}>
+                    <Box component="span" sx={{ mr: 0.5 }}>ログイン中：</Box>{user.email}
+                  </Typography>
+                ) : null;
+              })()}
+            </Box>
           </Stack>
         </Box>
       </Stack>
@@ -988,7 +1068,7 @@ export default function App({ onSignOut }) {
             sx={{ position: "fixed", top: 0, left: 0, right: 0, height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}
           >
             <Box sx={{ color: "#fff", fontSize: "0.78rem", fontWeight: 500, opacity: 0.7 }}>
-              Before / After
+              編集前 / 編集後
             </Box>
             <IconButton
               onClick={() => setCompareModal(null)}
@@ -1046,13 +1126,13 @@ export default function App({ onSignOut }) {
                 display: "block"
               }}
             />
-            {/* Before label */}
+            {/* 編集前ラベル */}
             <Box sx={{ position: "absolute", top: 12, left: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
-              Before
+              編集前
             </Box>
-            {/* After label */}
+            {/* 編集後ラベル */}
             <Box sx={{ position: "absolute", top: 12, right: 12, color: "#fff", background: "rgba(0,0,0,0.6)", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", pointerEvents: "none", zIndex: 5 }}>
-              After
+              編集後
             </Box>
             {/* Divider line */}
             <Box ref={dividerRef} sx={{ position: "absolute", top: 0, bottom: 0, left: `${sliderPos}%`, width: "2px", background: "#fff", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 10, boxShadow: "0 0 6px rgba(0,0,0,0.5)" }} />
