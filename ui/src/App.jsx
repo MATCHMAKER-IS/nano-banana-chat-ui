@@ -31,6 +31,12 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import logoBanana from "./assets/logo-banana.png";
+import stepPhoto from "./assets/step-photo.png";
+import stepPrompt from "./assets/step-prompt.png";
+import stepResult from "./assets/step-result.png";
+import uploadIllustration from "./assets/upload-illustration.png";
+import emptyBeforeAfter from "./assets/empty-before-after.png";
 
 const PSEUDO_STEPS = ["画像を読み込み中", "編集内容を解析中", "編集リクエストを送信中", "画像を生成中", "最終調整中"];
 const PROXY_TOKEN_STORAGE_KEY = "nano_banana_proxy_token";
@@ -56,6 +62,11 @@ const MODEL_OPTIONS = Array.from(
       .concat(DEFAULT_MODEL)
   )
 );
+const STEP_GUIDES = [
+  { no: 1, title: "写真を入れる", detail: "ドラッグ&ドロップ、またはアップロード", image: stepPhoto },
+  { no: 2, title: "変えたいことを書く", detail: "例: 背景を青空にしてください", image: stepPrompt },
+  { no: 3, title: "完成を見る", detail: "保存や比較もワンクリック", image: stepResult }
+];
 
 function getModelLabel(modelId) {
   return MODEL_LABELS[modelId] || modelId;
@@ -606,12 +617,23 @@ export default function App({ onSignOut }) {
             </Box>
           )}
           <Box sx={{ px: 3, pt: 3, pb: 1.5 }}>
-            <Typography variant="h4" sx={{ fontSize: { xs: 22, md: 27 }, fontWeight: 800, letterSpacing: "-0.01em", color: "text.primary" }}>
-              バナナ写真スタジオ
-            </Typography>
-            <Typography sx={{ mt: 0.4, color: "text.secondary", fontSize: "0.86rem" }}>
-              画像を入れて、文章でお願いするだけ。やさしい写真編集ツールです。
-            </Typography>
+            <Stack direction="row" spacing={1.25} alignItems="center">
+              <Box
+                component="img"
+                src={logoBanana}
+                alt="バナナ写真スタジオ ロゴ"
+                loading="eager"
+                sx={{ width: 50, height: 50, objectFit: "contain", borderRadius: "12px" }}
+              />
+              <Box>
+                <Typography variant="h4" sx={{ fontSize: { xs: 22, md: 27 }, fontWeight: 800, letterSpacing: "-0.01em", color: "text.primary" }}>
+                  バナナ写真スタジオ
+                </Typography>
+                <Typography sx={{ mt: 0.25, color: "text.secondary", fontSize: "0.86rem" }}>
+                  画像を入れて、文章でお願いするだけ。やさしい写真編集ツールです。
+                </Typography>
+              </Box>
+            </Stack>
           </Box>
 
           {!hasMessages && (
@@ -636,11 +658,7 @@ export default function App({ onSignOut }) {
                     3ステップで編集
                   </Typography>
                   <Stack direction={{ xs: "column", md: "row" }} spacing={1.2}>
-                    {[
-                      { no: 1, title: "写真を入れる", detail: "ドラッグ&ドロップ、またはアップロード" },
-                      { no: 2, title: "変えたいことを書く", detail: "例: 背景を青空にしてください" },
-                      { no: 3, title: "完成を見る", detail: "保存や比較もワンクリック" }
-                    ].map((step) => (
+                    {STEP_GUIDES.map((step) => (
                       <Box
                         key={step.no}
                         sx={{
@@ -651,6 +669,13 @@ export default function App({ onSignOut }) {
                           border: "1px solid rgba(210,164,136,0.4)"
                         }}
                       >
+                        <Box
+                          component="img"
+                          src={step.image}
+                          alt={`${step.title}のイラスト`}
+                          loading="lazy"
+                          sx={{ width: 58, height: 58, objectFit: "contain", mb: 0.6 }}
+                        />
                         <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", mb: 0.3 }}>STEP {step.no}</Typography>
                         <Typography sx={{ fontSize: "0.93rem", fontWeight: 700, color: "text.primary", mb: 0.25 }}>{step.title}</Typography>
                         <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.55 }}>{step.detail}</Typography>
@@ -669,6 +694,13 @@ export default function App({ onSignOut }) {
                       gap: 1.3
                     }}
                   >
+                    <Box
+                      component="img"
+                      src={uploadIllustration}
+                      alt="アップロードガイド"
+                      loading="lazy"
+                      sx={{ width: "min(220px, 55%)", maxWidth: "220px", objectFit: "contain", opacity: 0.95 }}
+                    />
                     <Typography sx={{ fontSize: "0.94rem", color: "text.primary", fontWeight: 700 }}>
                       ここに写真をドラッグ
                     </Typography>
@@ -703,6 +735,26 @@ export default function App({ onSignOut }) {
                       />
                     ))}
                   </Stack>
+                  <Box
+                    sx={{
+                      mt: 1.8,
+                      p: 1.5,
+                      borderRadius: "16px",
+                      border: "1px solid rgba(208, 153, 120, 0.38)",
+                      background: "rgba(255, 241, 227, 0.8)"
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", mb: 0.8 }}>
+                      編集結果のイメージ
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={emptyBeforeAfter}
+                      alt="編集前後のプレビュー"
+                      loading="lazy"
+                      sx={{ width: "100%", borderRadius: "12px", objectFit: "cover", border: "1px solid rgba(194, 140, 108, 0.22)" }}
+                    />
+                  </Box>
                 </CardContent>
               </Card>
             </Box>
