@@ -66,6 +66,43 @@ const STEP_GUIDES = [
   { no: 2, title: "変えたいことを書く", detail: "例: 背景を青空にしてください", image: stepPrompt },
   { no: 3, title: "完成を見る", detail: "保存や比較もワンクリック", image: stepResult }
 ];
+const QUICK_PROMPT_CHIPS = [
+  "ムーディーな部屋にして",
+  "背景をお花畑にして",
+  "海外のおしゃれな街並みにして",
+  "背景をホテルのロビーにして",
+  "背景を夜景の見えるバーにして",
+  "背景を海辺のリゾートにして",
+  "背景を緑の多い公園にして",
+  "背景をカフェテラスにして",
+  "背景を白基調の上品な室内にして",
+  "背景を自然光の入るラウンジにして"
+];
+const DEFAULT_SYSTEM_PROMPT = `# Subject Preservation Rules
+
+When editing any image, strictly follow these rules at all times:
+
+## MUST PRESERVE (Do not change under any circumstances)
+- Subject's facial geometry (face shape, eye spacing, nose width, jawline, chin)
+- Facial expression and micro-expressions
+- Eye color, hair length, and hair color
+- Pose and body position
+- Composition and framing (no cropping or reframing)
+- Skin tone and undertones
+- Natural asymmetry and individual characteristics
+
+## PROHIBITED CHANGES
+- No face morphing or reshaping
+- No beautification or idealization
+- No age alteration
+- No smoothing that removes natural texture
+- No style drift or reinterpretation of facial features
+- No changes to composition or camera angle
+
+## EDIT SCOPE
+- Apply changes ONLY to explicitly requested elements
+- When in doubt, do less — preserve over interpret
+- Treat the uploaded image as the identity anchor`;
 
 function getModelLabel(modelId) {
   return MODEL_LABELS[modelId] || modelId;
@@ -192,6 +229,8 @@ function clamp(value, min, max) {
 
 function MessageImage({ src, alt, onClick, variant = "generated" }) {
   const isThumb = variant === "thumb";
+  const generatedMaxWidth = "min(320px, 100%)";
+  const generatedMaxHeight = "min(42vh, 360px)";
   return (
     <Box
       component="img"
@@ -201,9 +240,9 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
       sx={{
         width: isThumb ? "110px" : "auto",
         height: isThumb ? "110px" : "auto",
-        maxWidth: isThumb ? "110px" : "min(460px, 100%)",
-        maxHeight: isThumb ? "110px" : undefined,
-        objectFit: isThumb ? "cover" : undefined,
+        maxWidth: isThumb ? "110px" : generatedMaxWidth,
+        maxHeight: isThumb ? "110px" : generatedMaxHeight,
+        objectFit: isThumb ? "cover" : "contain",
         borderRadius: isThumb ? "12px" : 1.25,
         border: "none",
         cursor: onClick ? "zoom-in" : "default",
@@ -242,16 +281,16 @@ export default function App({ onSignOut }) {
 
   const [systemPromptInput, setSystemPromptInput] = useState(() => {
     try {
-      return localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY) || "";
+      const stored = localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY);
+      return stored === null ? DEFAULT_SYSTEM_PROMPT : stored;
     } catch {
-      return "";
+      return DEFAULT_SYSTEM_PROMPT;
     }
   });
 
   useEffect(() => {
     try {
-      if (systemPromptInput) localStorage.setItem(SYSTEM_PROMPT_STORAGE_KEY, systemPromptInput);
-      else localStorage.removeItem(SYSTEM_PROMPT_STORAGE_KEY);
+      localStorage.setItem(SYSTEM_PROMPT_STORAGE_KEY, systemPromptInput);
     } catch {
       // ignore storage errors
     }
@@ -721,7 +760,7 @@ export default function App({ onSignOut }) {
                     </Button>
                   </Box>
                   <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.6 }}>
-                    {["背景を明るくする", "不要な人を消す", "料理をもっと美味しそうに"].map((sample) => (
+                    {QUICK_PROMPT_CHIPS.map((sample) => (
                       <Chip
                         key={sample}
                         label={sample}
@@ -1089,6 +1128,24 @@ export default function App({ onSignOut }) {
                   "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.68rem", mx: 0 }
                 }}
               />
+              <Stack direction="row" justifyContent="flex-end" sx={{ mt: 0.4 }}>
+                <Button
+                  size="small"
+                  variant="text"
+                  disabled={!systemPromptInput.trim()}
+                  onClick={() => setSystemPromptInput("")}
+                  sx={{
+                    minWidth: "auto",
+                    px: 0.8,
+                    color: "text.secondary",
+                    fontSize: "0.74rem",
+                    borderRadius: "8px",
+                    "&:hover": { background: "rgba(255, 226, 202, 0.65)", color: "text.primary" }
+                  }}
+                >
+                  クリア
+                </Button>
+              </Stack>
             </Box>
 
             <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
