@@ -36,7 +36,6 @@ import stepPhoto from "./assets/step-photo.png";
 import stepPrompt from "./assets/step-prompt.png";
 import stepResult from "./assets/step-result.png";
 import uploadIllustration from "./assets/upload-illustration.png";
-import emptyBeforeAfter from "./assets/empty-before-after.png";
 
 const PSEUDO_STEPS = ["画像を読み込み中", "編集内容を解析中", "編集リクエストを送信中", "画像を生成中", "最終調整中"];
 const PROXY_TOKEN_STORAGE_KEY = "nano_banana_proxy_token";
@@ -303,7 +302,7 @@ export default function App({ onSignOut }) {
   const handleRef = useRef(null);
   const [compareAspect, setCompareAspect] = useState("16/9");
   const [targetNoticeOpen, setTargetNoticeOpen] = useState(false);
-  const [sessionWidth, setSessionWidth] = useState(320);
+  const [sessionWidth, setSessionWidth] = useState(300);
 
   const formRef = useRef(null);
   const endRef = useRef(null);
@@ -646,7 +645,7 @@ export default function App({ onSignOut }) {
                 elevation={0}
                 sx={{
                   width: "100%",
-                  maxWidth: 840,
+                  maxWidth: 760,
                   borderRadius: "26px",
                   border: "1px solid rgba(172,126,100,0.22)",
                   background: "linear-gradient(180deg, rgba(255,252,246,0.95), rgba(255,246,233,0.95))",
@@ -663,7 +662,7 @@ export default function App({ onSignOut }) {
                         key={step.no}
                         sx={{
                           flex: 1,
-                          p: 1.4,
+                          p: 1,
                           borderRadius: "16px",
                           background: "#fffaf3",
                           border: "1px solid rgba(210,164,136,0.4)"
@@ -674,7 +673,7 @@ export default function App({ onSignOut }) {
                           src={step.image}
                           alt={`${step.title}のイラスト`}
                           loading="lazy"
-                          sx={{ width: 58, height: 58, objectFit: "contain", mb: 0.6 }}
+                          sx={{ width: 46, height: 46, objectFit: "contain", mb: 0.45 }}
                         />
                         <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", mb: 0.3 }}>STEP {step.no}</Typography>
                         <Typography sx={{ fontSize: "0.93rem", fontWeight: 700, color: "text.primary", mb: 0.25 }}>{step.title}</Typography>
@@ -684,8 +683,8 @@ export default function App({ onSignOut }) {
                   </Stack>
                   <Box
                     sx={{
-                      mt: 2.1,
-                      p: { xs: 2, md: 2.4 },
+                      mt: 1.6,
+                      p: { xs: 1.5, md: 1.8 },
                       borderRadius: "20px",
                       border: "2px dashed rgba(224,145,102,0.7)",
                       background: "rgba(255, 236, 221, 0.5)",
@@ -699,7 +698,7 @@ export default function App({ onSignOut }) {
                       src={uploadIllustration}
                       alt="アップロードガイド"
                       loading="lazy"
-                      sx={{ width: "min(220px, 55%)", maxWidth: "220px", objectFit: "contain", opacity: 0.95 }}
+                      sx={{ width: "min(170px, 45%)", maxWidth: "170px", objectFit: "contain", opacity: 0.95 }}
                     />
                     <Typography sx={{ fontSize: "0.94rem", color: "text.primary", fontWeight: 700 }}>
                       ここに写真をドラッグ
@@ -735,26 +734,6 @@ export default function App({ onSignOut }) {
                       />
                     ))}
                   </Stack>
-                  <Box
-                    sx={{
-                      mt: 1.8,
-                      p: 1.5,
-                      borderRadius: "16px",
-                      border: "1px solid rgba(208, 153, 120, 0.38)",
-                      background: "rgba(255, 241, 227, 0.8)"
-                    }}
-                  >
-                    <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", mb: 0.8 }}>
-                      編集結果のイメージ
-                    </Typography>
-                    <Box
-                      component="img"
-                      src={emptyBeforeAfter}
-                      alt="編集前後のプレビュー"
-                      loading="lazy"
-                      sx={{ width: "100%", borderRadius: "12px", objectFit: "cover", border: "1px solid rgba(194, 140, 108, 0.22)" }}
-                    />
-                  </Box>
                 </CardContent>
               </Card>
             </Box>
