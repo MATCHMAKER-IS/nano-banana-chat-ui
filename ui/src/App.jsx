@@ -368,6 +368,7 @@ export default function App({ onSignOut }) {
   }, [pendingAttachment, manualTargetImage, latestGeneratedImage]);
   const canSend = useMemo(() => !loading && prompt.trim().length > 0 && !!effectiveImage, [loading, prompt, effectiveImage]);
   const hasMessages = messages.length > 0;
+  const currentUser = getUserInfo();
 
   const pseudoStep = useMemo(() => {
     if (!loading) return "待機中";
@@ -996,114 +997,155 @@ export default function App({ onSignOut }) {
               transition: "background 0.2s"
             }}
           />
-          <Stack spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
-            {/* マニュアルリンク */}
-            <Stack spacing={0.25} sx={{ pb: 1.5, borderBottom: "1px solid rgba(171, 130, 102, 0.2)" }}>
-              <Box
-                component="a"
-                href="https://connect.zoho.com/portal/ecl/manual/fromit/article/nano-banana-webui"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  display: "flex", alignItems: "center", gap: 0.75,
-                  px: 0.9, py: 0.75, borderRadius: "12px",
-                  color: "text.primary", textDecoration: "none", fontSize: "0.82rem",
-                  "&:hover": { color: "text.primary", background: "rgba(255, 226, 202, 0.65)" },
-                  transition: "color 0.15s, background 0.15s"
-                }}
-              >
-                <MenuBookRoundedIcon sx={{ fontSize: "1rem" }} />
-                操作マニュアル
-              </Box>
-              <Box
-                component="a"
-                href="https://connect.zoho.com/portal/ecl/manual/ladyinterview/article/kakourule"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  display: "flex", alignItems: "center", gap: 0.75,
-                  px: 0.9, py: 0.75, borderRadius: "12px",
-                  color: "text.primary", textDecoration: "none", fontSize: "0.82rem",
-                  "&:hover": { color: "text.primary", background: "rgba(255, 226, 202, 0.65)" },
-                  transition: "color 0.15s, background 0.15s"
-                }}
-              >
-                <MenuBookRoundedIcon sx={{ fontSize: "1rem" }} />
-                写真加工のルール
-              </Box>
-            </Stack>
-            <TextField
-              size="small"
-              label="AIモデル"
-              select
-              value={modelInput}
-              onChange={(e) => setModelInput(e.target.value)}
-              helperText="通常はNano Bananaを選択してください"
-              sx={{
-                "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
-                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
-                "& .MuiInputBase-root": { background: "#fff8ef" },
-                "& .MuiInputLabel-root": { color: "text.primary" },
-                "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.7rem", mx: 0 }
-              }}
-            >
-              {MODEL_OPTIONS.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {getModelLabel(option)}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              size="small"
-              label="固定指示（システムプロンプト）"
-              placeholder={"毎回同じ指示を入力する場合はここに記載\n（例：被写体には一切の変更を加えないこと）"}
-              multiline
-              minRows={5}
-              maxRows={20}
-              value={systemPromptInput}
-              onChange={(e) => setSystemPromptInput(e.target.value)}
-              helperText="毎回の編集に共通して適用されます"
-              sx={{
-                "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
-                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
-                "& .MuiInputBase-root": { background: "#fff8ef" },
-                "& .MuiInputLabel-root": { color: "text.primary" },
-                "& .MuiInputBase-input::placeholder": { opacity: 0.5 },
-                "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.7rem", mx: 0 }
-              }}
-            />
-            <Stack spacing={0.5}>
-              <Button
-                variant="text"
-                size="small"
-                onClick={resetSession}
-                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255, 226, 202, 0.65)" } }}
-              >
-                会話をリセット（新しい編集を始める）
-              </Button>
-              <Button
-                variant="text"
-                size="small"
-                onClick={onSignOut}
-                sx={{ justifyContent: "flex-start", color: "text.primary", fontSize: "0.82rem", borderRadius: "10px", "&:hover": { background: "rgba(255, 226, 202, 0.65)" } }}
-              >
-                ログアウト
-              </Button>
-            </Stack>
+          <Stack spacing={1.4} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
+            <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box component="img" src={logoBanana} alt="banana" sx={{ width: 38, height: 38, borderRadius: "10px", objectFit: "contain" }} />
+                <Box>
+                  <Typography sx={{ fontSize: "0.83rem", fontWeight: 700, color: "text.primary" }}>やさしいサポート</Typography>
+                  <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>右の項目から順に見るだけで使えます</Typography>
+                </Box>
+              </Stack>
+            </Box>
 
-            {/* セッション情報（下部） */}
-            <Box sx={{ mt: "auto", pt: 2, borderTop: "1px solid rgba(171, 130, 102, 0.2)" }}>
-              <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(133, 105, 90, 0.7)", lineHeight: 1.6 }}>
-                <Box component="span" sx={{ mr: 0.5 }}>セッションID：</Box>{sessionId}
-              </Typography>
-              {(() => {
-                const user = getUserInfo();
-                return user ? (
-                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.7rem", color: "rgba(133, 105, 90, 0.7)", lineHeight: 1.6 }}>
-                    <Box component="span" sx={{ mr: 0.5 }}>ログイン中：</Box>{user.email}
+            <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
+              <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "text.primary", mb: 0.7 }}>はじめての方へ</Typography>
+              <Stack spacing={0.45}>
+                <Box
+                  component="a"
+                  href="https://connect.zoho.com/portal/ecl/manual/fromit/article/nano-banana-webui"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    px: 0.8, py: 0.6, borderRadius: "10px", textDecoration: "none", color: "text.primary",
+                    background: "rgba(255, 235, 219, 0.75)", "&:hover": { background: "rgba(255, 226, 202, 0.9)" }
+                  }}
+                >
+                  <Stack direction="row" spacing={0.7} alignItems="center">
+                    <MenuBookRoundedIcon sx={{ fontSize: "0.95rem" }} />
+                    <Typography sx={{ fontSize: "0.8rem", fontWeight: 600 }}>操作マニュアル</Typography>
+                  </Stack>
+                  <OpenInNewRoundedIcon sx={{ fontSize: "0.9rem", opacity: 0.7 }} />
+                </Box>
+                <Box
+                  component="a"
+                  href="https://connect.zoho.com/portal/ecl/manual/ladyinterview/article/kakourule"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    px: 0.8, py: 0.6, borderRadius: "10px", textDecoration: "none", color: "text.primary",
+                    background: "rgba(255, 235, 219, 0.75)", "&:hover": { background: "rgba(255, 226, 202, 0.9)" }
+                  }}
+                >
+                  <Stack direction="row" spacing={0.7} alignItems="center">
+                    <MenuBookRoundedIcon sx={{ fontSize: "0.95rem" }} />
+                    <Typography sx={{ fontSize: "0.8rem", fontWeight: 600 }}>写真加工のルール</Typography>
+                  </Stack>
+                  <OpenInNewRoundedIcon sx={{ fontSize: "0.9rem", opacity: 0.7 }} />
+                </Box>
+              </Stack>
+            </Box>
+
+            <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
+              <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "text.primary", mb: 0.8 }}>AIの設定</Typography>
+              <TextField
+                size="small"
+                label="つかうAI"
+                select
+                value={modelInput}
+                onChange={(e) => setModelInput(e.target.value)}
+                helperText="通常はNano BananaのままでOKです"
+                sx={{
+                  mb: 1,
+                  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
+                  "& .MuiInputBase-root": { background: "#fffdf8" },
+                  "& .MuiInputLabel-root": { color: "text.primary" },
+                  "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.68rem", mx: 0 }
+                }}
+              >
+                {MODEL_OPTIONS.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {getModelLabel(option)}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                size="small"
+                label="毎回のお願い"
+                placeholder={"毎回同じ内容を適用したい時に使います\n（例：被写体には手を加えない）"}
+                multiline
+                minRows={4}
+                maxRows={20}
+                value={systemPromptInput}
+                onChange={(e) => setSystemPromptInput(e.target.value)}
+                helperText="ここに書いた内容は毎回の編集に反映されます"
+                sx={{
+                  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
+                  "& .MuiInputBase-root": { background: "#fffdf8" },
+                  "& .MuiInputLabel-root": { color: "text.primary" },
+                  "& .MuiInputBase-input::placeholder": { opacity: 0.5 },
+                  "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.68rem", mx: 0 }
+                }}
+              />
+            </Box>
+
+            <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
+              <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "text.primary", mb: 0.8 }}>操作</Typography>
+              <Stack spacing={0.5}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RestartAltRoundedIcon sx={{ fontSize: "0.95rem" }} />}
+                  onClick={resetSession}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "text.primary",
+                    borderColor: "rgba(176,132,105,0.48)",
+                    borderRadius: "10px",
+                    fontSize: "0.8rem",
+                    "&:hover": { borderColor: "rgba(176,132,105,0.7)", background: "rgba(255, 226, 202, 0.55)" }
+                  }}
+                >
+                  最初からやり直す
+                </Button>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={onSignOut}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "text.primary",
+                    fontSize: "0.8rem",
+                    borderRadius: "10px",
+                    "&:hover": { background: "rgba(255, 226, 202, 0.65)" }
+                  }}
+                >
+                  ログアウト
+                </Button>
+              </Stack>
+            </Box>
+
+            <Box sx={{ mt: "auto", p: 1.1, borderRadius: "14px", background: "rgba(255,245,235,0.9)", border: "1px solid rgba(171,130,102,0.2)" }}>
+              {currentUser?.email ? (
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.55 }}>
+                  <MailOutlineRoundedIcon sx={{ fontSize: "0.88rem", color: "text.secondary" }} />
+                  <Typography sx={{ wordBreak: "break-all", fontSize: "0.72rem", color: "text.secondary", lineHeight: 1.4 }}>
+                    {currentUser.email}
                   </Typography>
-                ) : null;
-              })()}
+                </Stack>
+              ) : null}
+              <Box component="details" sx={{ fontSize: "0.7rem", color: "text.secondary" }}>
+                <Box component="summary" sx={{ cursor: "pointer", userSelect: "none" }}>
+                  技術情報を見る
+                </Box>
+                <Typography sx={{ mt: 0.5, wordBreak: "break-all", fontSize: "0.68rem", color: "rgba(133, 105, 90, 0.8)", lineHeight: 1.5 }}>
+                  <Box component="span" sx={{ mr: 0.5 }}>セッションID：</Box>{sessionId}
+                </Typography>
+              </Box>
             </Box>
           </Stack>
         </Box>
