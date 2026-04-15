@@ -999,16 +999,6 @@ export default function App({ onSignOut }) {
           />
           <Stack spacing={1.4} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
             <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Box component="img" src={logoBanana} alt="banana" sx={{ width: 38, height: 38, borderRadius: "10px", objectFit: "contain" }} />
-                <Box>
-                  <Typography sx={{ fontSize: "0.83rem", fontWeight: 700, color: "text.primary" }}>やさしいサポート</Typography>
-                  <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>右の項目から順に見るだけで使えます</Typography>
-                </Box>
-              </Stack>
-            </Box>
-
-            <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
               <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "text.primary", mb: 0.7 }}>はじめての方へ</Typography>
               <Stack spacing={0.45}>
                 <Box
@@ -1051,6 +1041,7 @@ export default function App({ onSignOut }) {
             <Box sx={{ p: 1.2, borderRadius: "16px", background: "#fff8ef", border: "1px solid rgba(171,130,102,0.24)" }}>
               <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "text.primary", mb: 0.8 }}>AIの設定</Typography>
               <TextField
+                fullWidth
                 size="small"
                 label="つかうAI"
                 select
@@ -1063,6 +1054,12 @@ export default function App({ onSignOut }) {
                   "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
                   "& .MuiInputBase-root": { background: "#fffdf8" },
                   "& .MuiInputLabel-root": { color: "text.primary" },
+                  "& .MuiSelect-select": {
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    pr: "28px !important"
+                  },
                   "& .MuiFormHelperText-root": { color: "text.secondary", fontSize: "0.68rem", mx: 0 }
                 }}
               >
@@ -1073,6 +1070,7 @@ export default function App({ onSignOut }) {
                 ))}
               </TextField>
               <TextField
+                fullWidth
                 size="small"
                 label="毎回のお願い"
                 placeholder={"毎回同じ内容を適用したい時に使います\n（例：被写体には手を加えない）"}
