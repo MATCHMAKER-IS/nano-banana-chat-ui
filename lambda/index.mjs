@@ -5,6 +5,31 @@ const GEMINI_TIMEOUT_MS = 270000; // 4分30秒（Lambdaの5分タイムアウト
 const MAX_RETRY = 1;
 
 const ZOHO_BASE = "https://accounts.zoho.com";
+const BASE_SYSTEM_PROMPT = `# Subject Preservation Rules
+
+When editing any image, strictly follow these rules at all times:
+
+## MUST PRESERVE (Do not change under any circumstances)
+- Subject's facial geometry (face shape, eye spacing, nose width, jawline, chin)
+- Facial expression and micro-expressions
+- Eye color, hair length, and hair color
+- Pose and body position
+- Composition and framing (no cropping or reframing)
+- Skin tone and undertones
+- Natural asymmetry and individual characteristics
+
+## PROHIBITED CHANGES
+- No face morphing or reshaping
+- No beautification or idealization
+- No age alteration
+- No smoothing that removes natural texture
+- No style drift or reinterpretation of facial features
+- No changes to composition or camera angle
+
+## EDIT SCOPE
+- Apply changes ONLY to explicitly requested elements
+- When in doubt, do less - preserve over interpret
+- Treat the uploaded image as the identity anchor`;
 
 // アクセストークンをZohoのuserinfoエンドポイントで検証
 async function verifyZohoToken(authHeader) {
@@ -144,6 +169,11 @@ function resolveModel(model) {
   if (!model) return DEFAULT_MODEL;
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,127}$/.test(model)) return null;
   return model;
+}
+
+function buildSystemInstruction(customPrompt) {
+  if (!customPrompt) return BASE_SYSTEM_PROMPT;
+  return `${BASE_SYSTEM_PROMPT}\n\n## ADDITIONAL USER REQUESTS\n${customPrompt}`;
 }
 
 async function fetchGeminiWithTimeout(endpoint, apiKey, body) {
@@ -316,6 +346,7 @@ export const handler = async (event) => {
   const sessionId = String(payload?.sessionId || crypto.randomUUID());
   const { prompt, systemPrompt, imageBase64, mimeType, fileUri, responseMode, model } = normalizePayload(payload);
   const selectedModel = resolveModel(model);
+  const effectiveSystemPrompt = buildSystemInstruction(systemPrompt);
 
   if (!prompt) return respond(400, { error: "prompt_required", requestId, sessionId });
   if (!selectedModel) return respond(400, { error: "invalid_model", requestId, sessionId });
@@ -335,10 +366,8 @@ export const handler = async (event) => {
   const bodyTextAndImage = {
     contents: [{ role: "user", parts }],
     generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+    systemInstruction: { parts: [{ text: effectiveSystemPrompt }] },
   };
-  if (systemPrompt) {
-    bodyTextAndImage.systemInstruction = { parts: [{ text: systemPrompt }] };
-  }
 
   const first = await runGemini(endpoint, apiKey, bodyTextAndImage);
 
@@ -377,10 +406,8 @@ export const handler = async (event) => {
     const bodyImageOnly = {
       contents: [{ role: "user", parts }],
       generationConfig: { responseModalities: ["IMAGE"] },
+      systemInstruction: { parts: [{ text: effectiveSystemPrompt }] },
     };
-    if (systemPrompt) {
-      bodyImageOnly.systemInstruction = { parts: [{ text: systemPrompt }] };
-    }
     const second = await runGemini(endpoint, apiKey, bodyImageOnly);
     if (second.upstreamRes?.ok) {
       const raw2 = await second.upstreamRes.text();

@@ -1,5 +1,7 @@
-﻿const ZOHO_BASE = "https://accounts.zoho.com";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+﻿import { resolveApiBaseUrl } from "./apiBaseUrl";
+
+const ZOHO_BASE = "https://accounts.zoho.com";
+const API_BASE_URL = resolveApiBaseUrl();
 const REDIRECT_URI =
   import.meta.env.VITE_REDIRECT_URI_FEATURE ||
   import.meta.env.VITE_REDIRECT_URI ||
@@ -96,3 +98,4 @@ export function getUserInfo() {
     return null;
   }
 }
+

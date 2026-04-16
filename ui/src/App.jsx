@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { getIdToken, getUserInfo } from "./auth";
+import { resolveApiBaseUrl } from "./apiBaseUrl";
 import {
   Alert,
   Box,
@@ -78,31 +79,6 @@ const QUICK_PROMPT_CHIPS = [
   "背景を白基調の上品な室内にして",
   "背景を自然光の入るラウンジにして"
 ];
-const DEFAULT_SYSTEM_PROMPT = `# Subject Preservation Rules
-
-When editing any image, strictly follow these rules at all times:
-
-## MUST PRESERVE (Do not change under any circumstances)
-- Subject's facial geometry (face shape, eye spacing, nose width, jawline, chin)
-- Facial expression and micro-expressions
-- Eye color, hair length, and hair color
-- Pose and body position
-- Composition and framing (no cropping or reframing)
-- Skin tone and undertones
-- Natural asymmetry and individual characteristics
-
-## PROHIBITED CHANGES
-- No face morphing or reshaping
-- No beautification or idealization
-- No age alteration
-- No smoothing that removes natural texture
-- No style drift or reinterpretation of facial features
-- No changes to composition or camera angle
-
-## EDIT SCOPE
-- Apply changes ONLY to explicitly requested elements
-- When in doubt, do less — preserve over interpret
-- Treat the uploaded image as the identity anchor`;
 
 function getModelLabel(modelId) {
   return MODEL_LABELS[modelId] || modelId;
@@ -258,7 +234,7 @@ function MessageImage({ src, alt, onClick, variant = "generated" }) {
 }
 
 export default function App({ onSignOut }) {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8787";
+  const apiBaseUrl = resolveApiBaseUrl();
   const [modelInput, setModelInput] = useState(() => {
     try {
       return localStorage.getItem(MODEL_STORAGE_KEY) || DEFAULT_MODEL;
@@ -281,16 +257,19 @@ export default function App({ onSignOut }) {
 
   const [systemPromptInput, setSystemPromptInput] = useState(() => {
     try {
-      const stored = localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY);
-      return stored === null ? DEFAULT_SYSTEM_PROMPT : stored;
+      return localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY) || "";
     } catch {
-      return DEFAULT_SYSTEM_PROMPT;
+      return "";
     }
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem(SYSTEM_PROMPT_STORAGE_KEY, systemPromptInput);
+      if (systemPromptInput.trim()) {
+        localStorage.setItem(SYSTEM_PROMPT_STORAGE_KEY, systemPromptInput);
+      } else {
+        localStorage.removeItem(SYSTEM_PROMPT_STORAGE_KEY);
+      }
     } catch {
       // ignore storage errors
     }
@@ -1112,13 +1091,13 @@ export default function App({ onSignOut }) {
                 fullWidth
                 size="small"
                 label="毎回のお願い"
-                placeholder={"毎回同じ内容を適用したい時に使います\n（例：被写体には手を加えない）"}
+                placeholder={"追加で毎回反映したい内容だけ入力\n（未入力でも利用できます）"}
                 multiline
                 minRows={4}
                 maxRows={20}
                 value={systemPromptInput}
                 onChange={(e) => setSystemPromptInput(e.target.value)}
-                helperText="ここに書いた内容は毎回の編集に反映されます"
+                helperText="ここに書いた内容は毎回の編集に追加で反映されます"
                 sx={{
                   "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: "0.85rem" },
                   "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(176,132,105,0.4)" },
